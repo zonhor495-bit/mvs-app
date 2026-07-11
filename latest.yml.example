@@ -1,0 +1,33 @@
+# Пример файла latest.yml для сервера обновлений MVS
+# 
+# Этот файл автоматически создаётся electron-builder при сборке
+# и должен быть загружен на https://updates.mvs.app/releases/latest.yml
+#
+# ВАЖНО: SHA512 хеши должны быть точными, иначе обновление не будет работать!
+
+version: 1.0.1
+files:
+  - url: MVSSetup-1.0.1.exe
+    sha512: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567'
+    size: 125432890
+path: MVSSetup-1.0.1.exe
+sha512: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567'
+releaseDate: '2024-01-15T10:30:00.000Z'
+
+# Примечания:
+# - version: текущая версия приложения (должна совпадать с package.json)
+# - url: путь к exe-файлу (относительно https://updates.mvs.app/releases/)
+# - sha512: 128-символьный хеш файла (используется для проверки целостности)
+# - size: размер файла в байтах
+# - releaseDate: дата релиза в ISO 8601 формате
+#
+# Как сгенерировать хеш SHA512 файла:
+# 
+# На Windows (PowerShell):
+#   (Get-FileHash -Path "MVSSetup-1.0.1.exe" -Algorithm SHA512).Hash
+#
+# На macOS/Linux:
+#   shasum -a 512 MVSSetup-1.0.1.exe | awk '{print tolower($1)}'
+#
+# На Node.js:
+#   node -e "const fs = require('fs'); const crypto = require('crypto'); const hash = crypto.createHash('sha512'); hash.update(fs.readFileSync('MVSSetup-1.0.1.exe')); console.log(hash.digest('hex'))"

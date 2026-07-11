@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+tmp-export.xlsx
+.env
+
+# Binary files and installers
+*.exe
+*.blockmap
+WD125/
+node_modules/

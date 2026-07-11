@@ -1,0 +1,94 @@
+{
+  "name": "mvs",
+  "private": true,
+  "version": "1.0.2",
+  "description": "MVS — Car Management System для автомоек с Windows-инсталлятором. Версия с автоматическими обновлениями.",
+  "author": "MVS Team",
+  "type": "module",
+  "main": "build/electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json && node ./scripts/postbuild-electron.cjs",
+    "build": "npm run build:web && npm run build:electron",
+    "preview": "vite preview",
+    "start": "electron .",
+    "build:win": "npm run build && electron-builder build --win nsis --x64 && node ./scripts/finalize-installer.cjs",
+    "dist": "npm run dist:win",
+    "dist:win": "npm run build && electron-builder build --win nsis --x64 && node ./scripts/finalize-installer.cjs",
+    "dist:publish": "npm run build && electron-builder build --win nsis --x64 --publish always"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "date-fns": "^4.4.0",
+    "electron-updater": "^6.8.9",
+    "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "jszip": "^3.10.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-router-dom": "^7.18.1",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "3.4.0"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/vite": "4.1.17",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "electron": "^26.6.10",
+    "electron-builder": "^24.7.0",
+    "png-to-ico": "^3.0.2",
+    "puppeteer": "^25.3.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "vite": "7.3.2",
+    "vite-plugin-singlefile": "2.3.0",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "icon": "assets/mvs",
+    "productName": "MVS — Car Management System",
+    "appId": "com.mvs.management",
+    "directories": {
+      "output": "build/win"
+    },
+    "files": [
+      "dist/**",
+      "build/electron/**",
+      "electron/template.xlsx",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "artifactName": "MVSSetup.exe",
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MVS — Car Management System"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "maksim-desktop",
+        "repo": "mvs-app",
+        "channel": "latest"
+      }
+    ]
+  }
+}
