@@ -333,7 +333,7 @@ function DownloadPage() {
               <h2 className="mt-3 text-4xl font-semibold">MVS для Windows</h2>
               <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">Запуск профессионального ПО для автомойки: установка, ярлыки и деинсталлятор в одном пакете.</p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                <a href="/WD125/Setup.exe" className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500">Скачать для Windows</a>
+                <a href="https://github.com/zonhor495-bit/mvs-app/releases/latest/download/MVSSetup.exe" className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500">Скачать для Windows</a>
                 <a href="/support" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Нужна помощь?</a>
               </div>
             </div>
