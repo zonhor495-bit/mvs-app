@@ -1,7 +1,7 @@
 {
   "name": "mvs",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MVS — Car Management System для автомоек с Windows-инсталлятором. Версия с автоматическими обновлениями.",
   "author": "MVS Team",
   "type": "module",
