@@ -8,7 +8,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/mvs-app">
       <WebsiteApp />
     </BrowserRouter>
   );
