@@ -122,39 +122,69 @@ export function initializeEmptyWorkspace(): void {
   localStorage.setItem(KEYS.seeded, 'true');
 }
 
-export function upsertGoogleUser(profile: { googleId: string; email: string; name?: string; photoUrl?: string }): User {
+function normalizeUsername(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+export function hasUsers(): boolean {
   initializeEmptyWorkspace();
+  return getUsersRaw().length > 0;
+}
+
+export function getUserByUsername(username: string): User | null {
+  initializeEmptyWorkspace();
+  const normalized = normalizeUsername(username);
+  return getUsersRaw().find(user => normalizeUsername(user.username || '') === normalized) || null;
+}
+
+export function registerLocalUser(payload: { username: string; passwordHash: string; passwordSalt: string; name?: string }): { ok: boolean; user?: User; error?: string } {
+  initializeEmptyWorkspace();
+  const username = normalizeUsername(payload.username);
+  if (!username) {
+    return { ok: false, error: 'Логин не может быть пустым' };
+  }
+
   const users = getUsersRaw();
   const now = new Date().toISOString();
-  const existing = users.find(user => user.googleId === profile.googleId || (user.email || '').toLowerCase() === profile.email.toLowerCase());
-  const user: User = existing
-    ? {
-        ...existing,
-        email: profile.email,
-        name: profile.name || existing.name,
-        photoUrl: profile.photoUrl || existing.photoUrl,
-        updatedAt: now,
-        lastLoginAt: now,
-      }
-    : {
-        id: generateId(),
-        googleId: profile.googleId,
-        email: profile.email,
-        name: profile.name,
-        photoUrl: profile.photoUrl,
-        role: 'admin',
-        createdAt: now,
-        updatedAt: now,
-        lastLoginAt: now,
-      };
+  const existing = users.find(user => normalizeUsername(user.username || '') === username);
   if (existing) {
-    saveUsersRaw(users.map(item => item.id === user.id ? user : item));
-  } else {
-    users.push(user);
-    saveUsersRaw(users);
+    return { ok: false, error: 'Пользователь с таким логином уже существует' };
   }
+
+  const user: User = {
+    id: generateId(),
+    username,
+    passwordHash: payload.passwordHash,
+    passwordSalt: payload.passwordSalt,
+    name: payload.name?.trim() || username,
+    role: 'admin',
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: now,
+  };
+
+  users.push(user);
+  saveUsersRaw(users);
   claimLegacyOrganizations(user.id || '');
-  return user;
+  return { ok: true, user };
+}
+
+export function authenticateLocalUser(payload: { username: string; passwordHash: string }): User | null {
+  initializeEmptyWorkspace();
+  const username = normalizeUsername(payload.username);
+  const users = getUsersRaw();
+  const existing = users.find(user => normalizeUsername(user.username || '') === username);
+  if (!existing || !existing.passwordHash || existing.passwordHash !== payload.passwordHash) {
+    return null;
+  }
+
+  const updated: User = {
+    ...existing,
+    lastLoginAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  saveUsersRaw(users.map(user => user.id === updated.id ? updated : user));
+  return updated;
 }
 
 export function updateUserProfile(userId: string, patch: Partial<User>): User | null {
@@ -165,7 +195,9 @@ export function updateUserProfile(userId: string, patch: Partial<User>): User | 
     ...existing,
     ...patch,
     id: existing.id,
-    googleId: existing.googleId,
+    username: existing.username,
+    passwordHash: existing.passwordHash,
+    passwordSalt: existing.passwordSalt,
     email: existing.email,
     updatedAt: new Date().toISOString(),
   };

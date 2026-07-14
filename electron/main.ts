@@ -44,33 +44,6 @@ function writeStartupLog(...args: any[]) {
   console.log(...args);
 }
 
-function readGoogleClientIdFromFile(filePath: string): string {
-  try {
-    if (!fs.existsSync(filePath)) return '';
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const parsed = JSON.parse(raw) as { VITE_GOOGLE_CLIENT_ID?: string; googleClientId?: string };
-    return (parsed.VITE_GOOGLE_CLIENT_ID || parsed.googleClientId || '').trim();
-  } catch (e) {
-    writeStartupLog('Failed to read Google Client ID from file', filePath, String(e));
-    return '';
-  }
-}
-
-function resolveGoogleClientId(): string {
-  const fromEnv = (process.env.VITE_GOOGLE_CLIENT_ID || '').trim();
-  if (fromEnv) return fromEnv;
-
-  const userDataConfigPath = path.join(app.getPath('userData'), 'config.json');
-  const fromUserData = readGoogleClientIdFromFile(userDataConfigPath);
-  if (fromUserData) return fromUserData;
-
-  const appDataConfigPath = path.join(app.getPath('appData'), 'MVS', 'config.json');
-  const fromAppData = readGoogleClientIdFromFile(appDataConfigPath);
-  if (fromAppData) return fromAppData;
-
-  return '';
-}
-
 // Write startup header with versions and paths
 function writeStartupHeader() {
   ensureLogDir();
@@ -298,7 +271,6 @@ function setupAutoUpdater() {
 ipcMain.handle('app/getVersion', () => app.getVersion());
 ipcMain.handle('app/getAppPath', () => app.getAppPath());
 ipcMain.handle('app/getPath', (_event: any, name: string) => app.getPath(name as any));
-ipcMain.handle('config/getGoogleClientId', () => resolveGoogleClientId());
 
 // Update-related IPC handlers
 ipcMain.handle('updater/check-for-updates', async () => {

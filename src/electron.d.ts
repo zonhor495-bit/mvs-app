@@ -7,7 +7,6 @@ declare global {
       getVersion(): Promise<string>;
       getAppPath(): Promise<string>;
       getPath(name: string): Promise<string>;
-      getGoogleClientId(): Promise<string>;
       exportReport(data: {
         orders: Array<{ id: number; date: string; service: string; amount: number; paymentMethod: string; washer: string; licensePlate: string; [key: string]: any }>;
         from: string;

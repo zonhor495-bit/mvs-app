@@ -521,9 +521,11 @@ export type Permission =
 
 export interface User {
   id?: string;
-  googleId?: string;
   // Optional remote id for future cloud sync
   remoteId?: string;
+  username?: string;
+  passwordHash?: string;
+  passwordSalt?: string;
   role: UserRole;
   email?: string;
   name?: string;

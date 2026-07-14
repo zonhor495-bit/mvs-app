@@ -7,7 +7,7 @@ const puppeteer = require('puppeteer');
   const now = new Date().toISOString();
   await page.goto('http://localhost:4180/', { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.evaluate(function(params) {
-    localStorage.setItem('wd_users', JSON.stringify([{ id: params.userId, googleId: 'g1', email: 'tester@example.com', name: 'Tester', photoUrl: '', role: 'admin', createdAt: params.now, updatedAt: params.now, lastLoginAt: params.now }]));
+    localStorage.setItem('wd_users', JSON.stringify([{ id: params.userId, username: 'tester', email: 'tester@example.com', name: 'Tester', photoUrl: '', role: 'admin', createdAt: params.now, updatedAt: params.now, lastLoginAt: params.now }]));
     localStorage.setItem('wd_organizations', JSON.stringify([{ id: params.orgId, ownerId: params.userId, name: 'Test Org', currency: '₸', timezone: 'Asia/Almaty', language: 'ru', createdAt: params.now, updatedAt: params.now, warehouseAdminView: true, analyticsAdminView: true, washerPercent: 45, financialSettings: { calculationMode: 'percent', employeePercent: 45, organizationPercent: 55, salaryAmount: 0, fixedOrderAmount: 0 } }]));
     localStorage.setItem('wd_session', JSON.stringify({ userId: params.userId, activeOrgId: params.orgId, createdAt: params.now, updatedAt: params.now }));
     localStorage.setItem('wd_active_org', params.orgId);

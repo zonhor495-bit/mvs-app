@@ -1,104 +1,104 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { User } from '../types';
-import { getOrganizationsForUser, getActiveOrgId, setActiveOrgId, startSession, upsertGoogleUser } from '../store';
+import { authenticateLocalUser, getActiveOrgId, getOrganizationsForUser, getUserByUsername, hasUsers, registerLocalUser, setActiveOrgId, startSession } from '../store';
 
 interface LoginProps {
   onLogin: (user: User, orgId?: string) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [isReady, setIsReady] = useState(false);
+  const hasAnyUsers = useMemo(() => hasUsers(), []);
+  const [mode, setMode] = useState<'login' | 'register'>(hasAnyUsers ? 'login' : 'register');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
-  const buttonRef = useRef<HTMLDivElement | null>(null);
-  const viteClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || '';
+  const [isBusy, setIsBusy] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
+  const toHex = (bytes: Uint8Array): string => Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
 
-    const setupGoogle = async () => {
-      let clientId = viteClientId;
-      if (!clientId && typeof window !== 'undefined' && window.electron?.getGoogleClientId) {
-        try {
-          clientId = (await window.electron.getGoogleClientId())?.trim() || '';
-        } catch {
-          clientId = '';
-        }
-      }
+  const hashPassword = async (plainPassword: string, salt: string): Promise<string> => {
+    const data = new TextEncoder().encode(`${salt}:${plainPassword}`);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return toHex(new Uint8Array(digest));
+  };
 
-      if (!clientId) {
-        if (!isCancelled) {
-          setError('Не задан Google Client ID. Укажите VITE_GOOGLE_CLIENT_ID.');
-        }
-        return;
-      }
+  const createSalt = (): string => {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return toHex(arr);
+  };
 
-      const existingScript = document.querySelector('script[data-google-identity="true"]') as HTMLScriptElement | null;
-      const initGoogle = () => {
-        if (isCancelled) return;
-        const google = (window as any).google;
-        if (!google?.accounts?.id || !buttonRef.current) return;
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response: { credential?: string }) => handleCredential(response.credential),
-        });
-        buttonRef.current.innerHTML = '';
-        google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'pill',
-          width: 320,
-          text: 'continue_with',
-        });
-        setIsReady(true);
-      };
+  const completeLogin = (user: User) => {
+    const organizations = getOrganizationsForUser(user.id || '');
+    const activeId = getActiveOrgId();
+    const org = activeId ? organizations.find(item => item.id === activeId) : organizations[0];
+    if (org) {
+      setActiveOrgId(org.id);
+    }
+    startSession(user, org?.id);
+    onLogin(user, org?.id);
+  };
 
-      if (existingScript) {
-        if ((window as any).google) initGoogle();
-        else existingScript.addEventListener('load', initGoogle, { once: true });
-        return;
-      }
+  const handleSubmit = async () => {
+    setError('');
 
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.dataset.googleIdentity = 'true';
-      script.onload = initGoogle;
-      script.onerror = () => setError('Не удалось загрузить Google авторизацию');
-      document.head.appendChild(script);
-    };
-
-    setupGoogle();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [viteClientId]);
-
-  const handleCredential = (credential?: string) => {
-    if (!credential) {
-      setError('Google не вернул данные авторизации');
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!normalizedUsername) {
+      setError('Введите логин');
+      return;
+    }
+    if (!password) {
+      setError('Введите пароль');
       return;
     }
 
+    setIsBusy(true);
     try {
-      const payload = JSON.parse(atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const user = upsertGoogleUser({
-        googleId: payload.sub,
-        email: payload.email,
-        name: payload.name,
-        photoUrl: payload.picture,
-      });
-      const organizations = getOrganizationsForUser(user.id || '');
-      const activeId = getActiveOrgId();
-      const org = activeId ? organizations.find(item => item.id === activeId) : organizations[0];
-      if (org) {
-        setActiveOrgId(org.id);
+      if (mode === 'register') {
+        if (password.length < 6) {
+          setError('Пароль должен содержать минимум 6 символов');
+          return;
+        }
+        if (password !== repeatPassword) {
+          setError('Пароли не совпадают');
+          return;
+        }
+
+        const salt = createSalt();
+        const passwordHash = await hashPassword(password, salt);
+        const created = registerLocalUser({
+          username: normalizedUsername,
+          passwordHash,
+          passwordSalt: salt,
+          name: displayName.trim() || normalizedUsername,
+        });
+        if (!created.ok || !created.user) {
+          setError(created.error || 'Не удалось создать аккаунт');
+          return;
+        }
+        completeLogin(created.user);
+        return;
       }
-      startSession(user, org?.id);
-      onLogin(user, org?.id);
+
+      const existing = getUserByUsername(normalizedUsername);
+      if (!existing?.passwordSalt) {
+        setError('Неверный логин или пароль');
+        return;
+      }
+      const passwordHash = await hashPassword(password, existing.passwordSalt);
+      const authUser = authenticateLocalUser({ username: normalizedUsername, passwordHash });
+      if (!authUser) {
+        setError('Неверный логин или пароль');
+        return;
+      }
+
+      completeLogin(authUser);
     } catch {
-      setError('Ошибка обработки Google-авторизации');
+      setError('Ошибка авторизации');
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -125,10 +125,50 @@ export default function Login({ onLogin }: LoginProps) {
 
         {/* Login Card */}
         <div className="glass-strong rounded-2xl p-8 neon-glow">
-          <h2 className="text-xl font-semibold text-white mb-6 text-center">Вход в систему</h2>
+          <h2 className="text-xl font-semibold text-white mb-6 text-center">
+            {mode === 'register' ? 'Создание аккаунта' : 'Вход в систему'}
+          </h2>
 
           <div className="mb-6 text-center text-sm text-slate-300">
-            Доступ в приложение выполняется только через Google-аккаунт. После входа новый пользователь попадает в пустое рабочее пространство и проходит мастер первоначальной настройки.
+            {mode === 'register'
+              ? 'Создайте локальный аккаунт администратора. Данные хранятся только в приложении.'
+              : 'Введите логин и пароль для входа в локальный аккаунт.'}
+          </div>
+
+          <div className="space-y-3 mb-6">
+            {mode === 'register' && (
+              <input
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                className="w-full input-neon rounded-lg px-4 py-3 text-sm"
+                placeholder="Имя (необязательно)"
+              />
+            )}
+            <input
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              autoComplete="username"
+              className="w-full input-neon rounded-lg px-4 py-3 text-sm"
+              placeholder="Логин"
+            />
+            <input
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              type="password"
+              className="w-full input-neon rounded-lg px-4 py-3 text-sm"
+              placeholder="Пароль"
+            />
+            {mode === 'register' && (
+              <input
+                value={repeatPassword}
+                onChange={e => setRepeatPassword(e.target.value)}
+                autoComplete="new-password"
+                type="password"
+                className="w-full input-neon rounded-lg px-4 py-3 text-sm"
+                placeholder="Повторите пароль"
+              />
+            )}
           </div>
 
           {error && (
@@ -138,12 +178,26 @@ export default function Login({ onLogin }: LoginProps) {
           )}
 
           <div className="flex justify-center">
-            <div ref={buttonRef} className="min-h-[44px]" />
+            <button
+              onClick={handleSubmit}
+              disabled={isBusy}
+              className="w-full rounded-lg bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 py-3 text-sm font-medium hover:bg-cyan-500/30 disabled:opacity-50"
+            >
+              {isBusy ? 'Обработка...' : mode === 'register' ? 'Создать аккаунт и войти' : 'Войти'}
+            </button>
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-xs text-slate-300">Google Session • User-isolated workspace</p>
-            {!isReady && !error && <p className="text-xs text-slate-300 mt-2">Подготавливается кнопка входа…</p>}
+            <p className="text-xs text-slate-300">Локальная авторизация • без внешних сервисов</p>
+            <button
+              onClick={() => {
+                setError('');
+                setMode(mode === 'register' ? 'login' : 'register');
+              }}
+              className="text-xs text-cyan-300 hover:text-cyan-200 mt-2"
+            >
+              {mode === 'register' ? 'Уже есть аккаунт? Войти' : 'Создать новый аккаунт'}
+            </button>
           </div>
         </div>
 
