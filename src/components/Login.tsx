@@ -10,48 +10,70 @@ export default function Login({ onLogin }: LoginProps) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState('');
   const buttonRef = useRef<HTMLDivElement | null>(null);
-  const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+  const viteClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || '';
 
   useEffect(() => {
-    if (!clientId) {
-      setError('Не задан Google Client ID. Укажите VITE_GOOGLE_CLIENT_ID.');
-      return;
-    }
+    let isCancelled = false;
 
-    const existingScript = document.querySelector('script[data-google-identity="true"]') as HTMLScriptElement | null;
-    const initGoogle = () => {
-      const google = (window as any).google;
-      if (!google?.accounts?.id || !buttonRef.current) return;
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response: { credential?: string }) => handleCredential(response.credential),
-      });
-      buttonRef.current.innerHTML = '';
-      google.accounts.id.renderButton(buttonRef.current, {
-        theme: 'outline',
-        size: 'large',
-        shape: 'pill',
-        width: 320,
-        text: 'continue_with',
-      });
-      setIsReady(true);
+    const setupGoogle = async () => {
+      let clientId = viteClientId;
+      if (!clientId && typeof window !== 'undefined' && window.electron?.getGoogleClientId) {
+        try {
+          clientId = (await window.electron.getGoogleClientId())?.trim() || '';
+        } catch {
+          clientId = '';
+        }
+      }
+
+      if (!clientId) {
+        if (!isCancelled) {
+          setError('Не задан Google Client ID. Укажите VITE_GOOGLE_CLIENT_ID.');
+        }
+        return;
+      }
+
+      const existingScript = document.querySelector('script[data-google-identity="true"]') as HTMLScriptElement | null;
+      const initGoogle = () => {
+        if (isCancelled) return;
+        const google = (window as any).google;
+        if (!google?.accounts?.id || !buttonRef.current) return;
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response: { credential?: string }) => handleCredential(response.credential),
+        });
+        buttonRef.current.innerHTML = '';
+        google.accounts.id.renderButton(buttonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          shape: 'pill',
+          width: 320,
+          text: 'continue_with',
+        });
+        setIsReady(true);
+      };
+
+      if (existingScript) {
+        if ((window as any).google) initGoogle();
+        else existingScript.addEventListener('load', initGoogle, { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.dataset.googleIdentity = 'true';
+      script.onload = initGoogle;
+      script.onerror = () => setError('Не удалось загрузить Google авторизацию');
+      document.head.appendChild(script);
     };
 
-    if (existingScript) {
-      if ((window as any).google) initGoogle();
-      else existingScript.addEventListener('load', initGoogle, { once: true });
-      return;
-    }
+    setupGoogle();
 
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.dataset.googleIdentity = 'true';
-    script.onload = initGoogle;
-    script.onerror = () => setError('Не удалось загрузить Google авторизацию');
-    document.head.appendChild(script);
-  }, [clientId]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [viteClientId]);
 
   const handleCredential = (credential?: string) => {
     if (!credential) {
@@ -81,7 +103,7 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center grid-bg relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center grid-bg bg-slate-950 text-slate-100 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-float" />
@@ -105,7 +127,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="glass-strong rounded-2xl p-8 neon-glow">
           <h2 className="text-xl font-semibold text-white mb-6 text-center">Вход в систему</h2>
 
-          <div className="mb-6 text-center text-sm text-slate-400">
+          <div className="mb-6 text-center text-sm text-slate-300">
             Доступ в приложение выполняется только через Google-аккаунт. После входа новый пользователь попадает в пустое рабочее пространство и проходит мастер первоначальной настройки.
           </div>
 
@@ -120,12 +142,12 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-xs text-slate-500">Google Session • User-isolated workspace</p>
-            {!isReady && !error && <p className="text-xs text-slate-600 mt-2">Подготавливается кнопка входа…</p>}
+            <p className="text-xs text-slate-300">Google Session • User-isolated workspace</p>
+            {!isReady && !error && <p className="text-xs text-slate-300 mt-2">Подготавливается кнопка входа…</p>}
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">v1.0 • Offline Mode</p>
+        <p className="text-center text-xs text-slate-300 mt-6">v1.0 • Offline Mode</p>
       </div>
     </div>
   );
