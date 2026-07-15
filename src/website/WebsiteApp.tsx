@@ -19,6 +19,19 @@ const faqs = [
   { question: 'Что делать, если нужно восстановить данные?', answer: 'Данные хранятся локально. Вы можете делать резервные копии базы и легко восстанавливать их через встроенный экспорт/импорт.' },
 ];
 
+const currentRelease = {
+  version: __APP_VERSION__,
+  date: __RELEASE_DATE__,
+  downloadUrl: `https://github.com/zonhor495-bit/mvs-app/releases/download/v${__APP_VERSION__}/MVSSetup-${__APP_VERSION__}.exe`,
+  fullChangesUrl: `https://github.com/zonhor495-bit/mvs-app/releases/tag/v${__APP_VERSION__}`,
+  whatsNew: [
+    'Система управления услугами',
+    'First Run Wizard',
+    'TOP-10 популярных услуг',
+    'Улучшения производительности',
+  ],
+};
+
 function Logo() {
   return (
     <div className="h-10 w-10 rounded-2xl border border-slate-200/80 bg-white/90 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center text-sm font-bold text-sky-600 dark:text-sky-400">
@@ -120,10 +133,16 @@ function HomePage() {
               <p className="max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">MVS объединяет заказы, клиентов, сотрудников и финансы в одном приложении. Готово к реальной эксплуатации, с инсталлятором, ярлыками и деинсталлятором.</p>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row">
-              <a href="https://github.com/zonhor495-bit/mvs-app/releases/latest/download/MVSSetup.exe" download="MVSSetup.exe" className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500">Скачать для Windows</a>
+              <a
+                href={currentRelease.downloadUrl}
+                download={`MVSSetup-${currentRelease.version}.exe`}
+                className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500"
+              >
+                Скачать MVS для Windows
+              </a>
               <Link to="/features" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Посмотреть возможности</Link>
             </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
                 <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-400">Готово для</p>
                 <p className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">Windows 10 и 11</p>
@@ -135,6 +154,11 @@ function HomePage() {
               <div className="rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
                 <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-400">Развёртывание</p>
                 <p className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">В несколько кликов</p>
+              </div>
+              <div className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 shadow-xl shadow-sky-200/30 transition hover:-translate-y-1 hover:shadow-sky-300/30 dark:border-sky-900/60 dark:from-slate-900 dark:to-slate-950 dark:shadow-black/20">
+                <p className="text-xs uppercase tracking-[0.35em] text-sky-700 dark:text-sky-300">📦 Текущая версия</p>
+                <p className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">v{currentRelease.version}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Актуальная версия</p>
               </div>
             </div>
           </div>
@@ -332,10 +356,55 @@ function DownloadPage() {
               <p className="text-sm uppercase tracking-[0.3em] text-sky-600">Скачать</p>
               <h2 className="mt-3 text-4xl font-semibold">MVS для Windows</h2>
               <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">Запуск профессионального ПО для автомойки: установка, ярлыки и деинсталлятор в одном пакете.</p>
+
+              <div className="mt-8 rounded-3xl border border-sky-200 bg-sky-50/70 p-6 dark:border-sky-900/60 dark:bg-slate-950/80">
+                <p className="text-xs uppercase tracking-[0.3em] text-sky-700 dark:text-sky-300">Последняя версия MVS</p>
+                <p className="mt-3 text-base text-slate-700 dark:text-slate-200">
+                  Текущая версия: <span className="font-semibold">{currentRelease.version}</span>
+                </p>
+                <p className="mt-1 text-base text-slate-700 dark:text-slate-200">
+                  Дата выпуска: <span className="font-semibold">{currentRelease.date}</span>
+                </p>
+
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Что нового</p>
+                  <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                    {currentRelease.whatsNew.map((item) => (
+                      <li key={item}>✅ {item}</li>
+                    ))}
+                  </ul>
+                  <a
+                    href={currentRelease.fullChangesUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex text-sm font-medium text-sky-700 transition hover:text-sky-600 dark:text-sky-300 dark:hover:text-sky-200"
+                  >
+                    → Полный список изменений
+                  </a>
+                </div>
+              </div>
+
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                <a href="https://github.com/zonhor495-bit/mvs-app/releases/latest/download/MVSSetup.exe" download="MVSSetup.exe" className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500">Скачать для Windows</a>
+                <a
+                  href={currentRelease.downloadUrl}
+                  download={`MVSSetup-${currentRelease.version}.exe`}
+                  className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500"
+                >
+                  ⬇ Скачать MVS для Windows
+                </a>
                 <a href="/support" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Нужна помощь?</a>
               </div>
+              <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold">Версия:</span> {currentRelease.version}
+                </p>
+                <p className="text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold">Дата выпуска:</span> {currentRelease.date}
+                </p>
+              </div>
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+                Автообновление поддерживается. Если MVS уже установлен, новые версии будут предлагаться автоматически.
+              </p>
             </div>
             <div className="rounded-[1.75rem] bg-slate-950 p-8 text-slate-100 shadow-xl dark:bg-slate-900">
               <div className="rounded-3xl bg-slate-900 p-6 shadow-inner">
