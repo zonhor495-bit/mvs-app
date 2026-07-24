@@ -73,7 +73,7 @@
         }
       ]
     },
-    "artifactName": "MVSSetup.exe",
+    "artifactName": "MVSSetup-${version}.${ext}",
     "nsis": {
       "oneClick": false,
       "perMachine": true,
@@ -86,7 +86,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "maksim-desktop",
+        "owner": "zonhor495-bit",
         "repo": "mvs-app",
         "channel": "latest"
       }

@@ -27,11 +27,13 @@ declare global {
         };
       }): Promise<{ canceled: boolean; filePath?: string }>;
       updater: {
-        onUpdateAvailable(callback: (data: { currentVersion: string; newVersion: string }) => void): void;
-        onDownloadProgress(callback: (progress: { percent: number }) => void): void;
-        onUpdateDownloaded(callback: () => void): void;
-        onError(callback: (error: Error) => void): void;
-        checkForUpdates(): Promise<void>;
+        onCheckingForUpdate(callback: (data: { source: 'startup' | 'manual' | 'scheduled' }) => void): () => void;
+        onUpdateAvailable(callback: (data: { currentVersion: string; newVersion: string; releaseNotes: string[] }) => void): () => void;
+        onUpdateNotAvailable(callback: (data: { version: string; source: 'startup' | 'manual' | 'scheduled' }) => void): () => void;
+        onDownloadProgress(callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number; remainingSeconds: number | null }) => void): () => void;
+        onUpdateDownloaded(callback: (data: { version: string }) => void): () => void;
+        onError(callback: (error: { message: string }) => void): () => void;
+        checkForUpdates(source?: 'manual' | 'startup' | 'scheduled'): Promise<void>;
         downloadUpdate(): Promise<void>;
         installUpdate(): Promise<void>;
         dismissUpdate(): Promise<void>;

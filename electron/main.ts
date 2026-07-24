@@ -1,22 +1,17 @@
 import fs from 'fs';
 import path from 'path';
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import { app, BrowserWindow, ipcMain, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
 import ExcelJS from 'exceljs';
+import { UpdateWindow } from './updater/UpdateWindow';
+import { UpdateService } from './updater/UpdateService';
 
 // Using CommonJS build for Electron main: use Node's __dirname
 const appDir = __dirname;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
-
-// Configure electron-updater
-autoUpdater.logger = {
-  debug: (msg: string) => writeStartupLog('[updater-debug]', msg),
-  info: (msg: string) => writeStartupLog('[updater-info]', msg),
-  warn: (msg: string) => writeStartupLog('[updater-warn]', msg),
-  error: (msg: string) => writeStartupLog('[updater-error]', msg),
-};
+const updateWindow = new UpdateWindow();
+const updateService = new UpdateService({ isDev, logger: writeStartupLog, updateWindow });
 
 // Initialize central logger for startup diagnostics
 const logDir = path.join(app.getPath('appData'), 'MVS');
@@ -66,6 +61,48 @@ function writeStartupHeader() {
   }
 }
 
+function buildAppMenu() {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Справка',
+      submenu: [
+        {
+          label: 'Проверить обновления',
+          click: async () => {
+            try {
+              await updateService.checkForUpdates('manual');
+            } catch (error) {
+              writeStartupLog('[updater] manual check failed', String(error));
+              await dialog.showMessageBox({
+                type: 'error',
+                title: 'Ошибка обновления',
+                message: 'Не удалось проверить обновления. Попробуйте позже.',
+              });
+            }
+          },
+        },
+        {
+          type: 'separator',
+        },
+        {
+          label: 'О программе MVS',
+          click: async () => {
+            await dialog.showMessageBox({
+              type: 'info',
+              title: 'MVS — Car Management System',
+              message: `Версия: ${app.getVersion()}`,
+              detail: 'Профессиональная CRM для автомоек.',
+            });
+          },
+        },
+      ],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 function createMainWindow() {
   writeStartupLog('Creating main window...');
   mainWindow = new BrowserWindow({
@@ -77,7 +114,7 @@ function createMainWindow() {
     frame: false,
     backgroundColor: '#0b1220',
     title: 'MVS — Car Management System',
-    autoHideMenuBar: true,
+    autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(appDir, 'preload.cjs'),
       contextIsolation: true,
@@ -91,13 +128,15 @@ function createMainWindow() {
     writeStartupLog('Window ready-to-show');
     if (mainWindow) {
       try {
-        mainWindow.setMenuBarVisibility(false);
+        mainWindow.setMenuBarVisibility(true);
       } catch (e) {
         writeStartupLog('setMenuBarVisibility failed', String(e));
       }
       mainWindow.show();
     }
   });
+
+  updateWindow.setMainWindow(mainWindow);
 
   // Setup 10-second timeout for window load
   let loadTimeout: NodeJS.Timeout | null = null;
@@ -177,6 +216,7 @@ function createMainWindow() {
   }
 
   mainWindow.on('closed', () => {
+    updateWindow.setMainWindow(null);
     mainWindow = null;
   });
 }
@@ -185,6 +225,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  updateService.dispose();
 });
 
 // Global error handlers for main process
@@ -204,86 +248,34 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
   app.setAppUserModelId('com.mvs.management');
   writeStartupHeader();
+  buildAppMenu();
   createMainWindow();
+  updateService.initialize();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
     }
   });
-
-  // Setup auto-updater event listeners
-  setupAutoUpdater();
 });
-
-function setupAutoUpdater() {
-  // Auto-check for updates on startup and periodically
-  if (!isDev) {
-    autoUpdater.checkForUpdates();
-    setInterval(() => {
-      autoUpdater.checkForUpdates();
-    }, 60 * 60 * 1000); // Check every hour
-  }
-
-  // Update available event
-  autoUpdater.on('update-available', (info) => {
-    writeStartupLog('[updater] Update available:', info);
-    if (mainWindow) {
-      mainWindow.webContents.send('updater/update-available', {
-        currentVersion: app.getVersion(),
-        newVersion: info.version,
-      });
-    }
-  });
-
-  // No update available
-  autoUpdater.on('update-not-available', (info) => {
-    writeStartupLog('[updater] No update available', info.version);
-  });
-
-  // Download started
-  autoUpdater.on('download-progress', (progressObj) => {
-    writeStartupLog('[updater] Download progress:', progressObj.percent);
-    if (mainWindow) {
-      mainWindow.webContents.send('updater/download-progress', progressObj.percent);
-    }
-  });
-
-  // Download completed
-  autoUpdater.on('update-downloaded', (info) => {
-    writeStartupLog('[updater] Update downloaded:', info.version);
-    if (mainWindow) {
-      mainWindow.webContents.send('updater/update-downloaded', { version: info.version });
-    }
-  });
-
-  // Error occurred
-  autoUpdater.on('error', (error) => {
-    writeStartupLog('[updater] Error:', error.message);
-    if (mainWindow) {
-      mainWindow.webContents.send('updater/error', { message: error.message });
-    }
-  });
-}
 
 ipcMain.handle('app/getVersion', () => app.getVersion());
 ipcMain.handle('app/getAppPath', () => app.getAppPath());
 ipcMain.handle('app/getPath', (_event: any, name: string) => app.getPath(name as any));
 
 // Update-related IPC handlers
-ipcMain.handle('updater/check-for-updates', async () => {
-  return await autoUpdater.checkForUpdates();
+ipcMain.handle('updater/check-for-updates', async (_event: any, source: 'manual' | 'startup' | 'scheduled' = 'manual') => {
+  return await updateService.checkForUpdates(source);
 });
 
 ipcMain.handle('updater/download-update', async () => {
-  return await autoUpdater.downloadUpdate();
+  return await updateService.downloadUpdate();
 });
 
 ipcMain.handle('updater/install-update', async () => {
-  autoUpdater.quitAndInstall();
+  updateService.installUpdateNow();
 });
 
 ipcMain.handle('updater/dismiss-update', () => {

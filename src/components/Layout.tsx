@@ -36,6 +36,7 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
   const orgs = getOrganizations();
   const isManager = user.role === 'manager';
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [rolePromptOpen, setRolePromptOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
   const [rolePassword, setRolePassword] = useState('');
@@ -64,6 +65,16 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
     setPendingRole(null);
     setRolePassword('');
     setRoleError('');
+  };
+
+  const handleManualUpdateCheck = async () => {
+    setIsHelpMenuOpen(false);
+    if (!window.electron?.updater) return;
+    try {
+      await window.electron.updater.checkForUpdates('manual');
+    } catch (error) {
+      alert('Не удалось проверить обновления. Попробуйте позже.');
+    }
   };
 
   return (
@@ -189,6 +200,25 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
             )}
           </div>
           <div className="flex items-center gap-4">
+            <div className="relative">
+              <button
+                onClick={() => setIsHelpMenuOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition text-sm text-slate-300"
+                title="Справка"
+              >
+                ❓ Справка
+              </button>
+              {isHelpMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+                  <button
+                    onClick={handleManualUpdateCheck}
+                    className="w-full px-4 py-3 text-left text-sm text-slate-100 transition hover:bg-white/10"
+                  >
+                    Проверить обновления
+                  </button>
+                </div>
+              )}
+            </div>
             <span className="text-xs text-slate-500">{new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Система работает" />
           </div>

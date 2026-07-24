@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const pkg = require('../package.json');
 const buildOutput = path.resolve(__dirname, '..', 'build', 'win');
 const finalDir = path.resolve(__dirname, '..', 'WD125');
-const sourceName = 'MVSSetup.exe';
+const sourceName = `MVSSetup-${pkg.version}.exe`;
 const targetName = 'Setup.exe';
 
 if (!fs.existsSync(buildOutput)) {

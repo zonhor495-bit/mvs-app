@@ -49,8 +49,17 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [currentVersion, setCurrentVersion] = useState('1.0.0');
   const [newVersion, setNewVersion] = useState('');
+  const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadProgress, setDownloadProgress] = useState({
+    percent: 0,
+    bytesPerSecond: 0,
+    transferred: 0,
+    total: 0,
+    remainingSeconds: null as number | null,
+  });
+  const [isReadyToInstall, setIsReadyToInstall] = useState(false);
+  const [updateErrorMessage, setUpdateErrorMessage] = useState<string | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   useEffect(() => {
@@ -87,35 +96,48 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
     if (typeof window === 'undefined' || !window.electron?.updater) return;
 
     const updater = window.electron.updater;
+    const cleanupCallbacks: Array<() => void> = [];
 
     // Listen for update available
-    updater.onUpdateAvailable((data: { currentVersion: string; newVersion: string }) => {
+    cleanupCallbacks.push(updater.onUpdateAvailable((data: { currentVersion: string; newVersion: string; releaseNotes: string[] }) => {
       setCurrentVersion(data.currentVersion);
       setNewVersion(data.newVersion);
+      setReleaseNotes(data.releaseNotes || []);
       setIsUpdateDialogOpen(true);
       setIsDownloading(false);
-      setDownloadProgress(0);
-    });
+      setIsReadyToInstall(false);
+      setUpdateErrorMessage(null);
+      setDownloadProgress({ percent: 0, bytesPerSecond: 0, transferred: 0, total: 0, remainingSeconds: null });
+    }));
 
     // Listen for download progress
-    updater.onDownloadProgress((progress: { percent: number }) => {
-      setDownloadProgress(Math.round(progress.percent));
-    });
+    cleanupCallbacks.push(updater.onDownloadProgress((progress) => {
+      setDownloadProgress({
+        percent: Math.round(progress.percent),
+        bytesPerSecond: progress.bytesPerSecond,
+        transferred: progress.transferred,
+        total: progress.total,
+        remainingSeconds: progress.remainingSeconds,
+      });
+    }));
 
     // Listen for update downloaded
-    updater.onUpdateDownloaded(() => {
+    cleanupCallbacks.push(updater.onUpdateDownloaded(() => {
       setIsDownloading(false);
-      setDownloadProgress(100);
-    });
+      setIsReadyToInstall(true);
+      setUpdateErrorMessage(null);
+      setDownloadProgress((prev) => ({ ...prev, percent: 100 }));
+    }));
 
     // Listen for errors
-    updater.onError((error: Error) => {
+    cleanupCallbacks.push(updater.onError((error: { message: string }) => {
       console.error('Update error:', error);
+      setUpdateErrorMessage(error.message || 'Ошибка обновления');
       setIsDownloading(false);
-    });
+    }));
 
     return () => {
-      // Cleanup listeners if needed
+      cleanupCallbacks.forEach((dispose) => dispose());
     };
   }, []);
 
@@ -200,7 +222,9 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
   const handleUpdateClick = useCallback(() => {
     if (window.electron?.updater) {
       setIsDownloading(true);
-      setDownloadProgress(0);
+      setIsReadyToInstall(false);
+      setUpdateErrorMessage(null);
+      setDownloadProgress({ percent: 0, bytesPerSecond: 0, transferred: 0, total: 0, remainingSeconds: null });
       window.electron.updater.downloadUpdate();
     }
   }, []);
@@ -356,8 +380,11 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
           isOpen={isUpdateDialogOpen}
           currentVersion={currentVersion}
           newVersion={newVersion}
+          releaseNotes={releaseNotes}
           isDownloading={isDownloading}
           downloadProgress={downloadProgress}
+          isReadyToInstall={isReadyToInstall}
+          errorMessage={updateErrorMessage}
           isDark={isDarkTheme}
           onUpdate={handleUpdateClick}
           onDismiss={handleDismissUpdate}

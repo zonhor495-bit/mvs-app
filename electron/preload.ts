@@ -52,19 +52,37 @@ contextBridge.exposeInMainWorld('electron', {
   exportReport: (data: { orders: Array<{ id: number; date: string; service: string; amount: number; paymentMethod: string; washer: string; licensePlate: string }>; from: string; to: string; fileName: string; }) => ipcRenderer.invoke('report/exportToExcel', data),
   // Updater API
   updater: {
-    onUpdateAvailable: (callback: (data: { currentVersion: string; newVersion: string }) => void) => {
-      ipcRenderer.on('updater/update-available', (_event: any, data: any) => callback(data));
+    onCheckingForUpdate: (callback: (data: { source: 'startup' | 'manual' | 'scheduled' }) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('updater/checking-for-update', listener);
+      return () => ipcRenderer.removeListener('updater/checking-for-update', listener);
     },
-    onDownloadProgress: (callback: (progress: number) => void) => {
-      ipcRenderer.on('updater/download-progress', (_event: any, progress: any) => callback(progress));
+    onUpdateAvailable: (callback: (data: { currentVersion: string; newVersion: string; releaseNotes: string[] }) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('updater/update-available', listener);
+      return () => ipcRenderer.removeListener('updater/update-available', listener);
+    },
+    onUpdateNotAvailable: (callback: (data: { version: string; source: 'startup' | 'manual' | 'scheduled' }) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('updater/update-not-available', listener);
+      return () => ipcRenderer.removeListener('updater/update-not-available', listener);
+    },
+    onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number; remainingSeconds: number | null }) => void) => {
+      const listener = (_event: any, progress: any) => callback(progress);
+      ipcRenderer.on('updater/download-progress', listener);
+      return () => ipcRenderer.removeListener('updater/download-progress', listener);
     },
     onUpdateDownloaded: (callback: (data: { version: string }) => void) => {
-      ipcRenderer.on('updater/update-downloaded', (_event: any, data: any) => callback(data));
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('updater/update-downloaded', listener);
+      return () => ipcRenderer.removeListener('updater/update-downloaded', listener);
     },
     onError: (callback: (data: { message: string }) => void) => {
-      ipcRenderer.on('updater/error', (_event: any, data: any) => callback(data));
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('updater/error', listener);
+      return () => ipcRenderer.removeListener('updater/error', listener);
     },
-    checkForUpdates: () => ipcRenderer.invoke('updater/check-for-updates'),
+    checkForUpdates: (source: 'manual' | 'startup' | 'scheduled' = 'manual') => ipcRenderer.invoke('updater/check-for-updates', source),
     downloadUpdate: () => ipcRenderer.invoke('updater/download-update'),
     installUpdate: () => ipcRenderer.invoke('updater/install-update'),
     dismissUpdate: () => ipcRenderer.invoke('updater/dismiss-update'),
