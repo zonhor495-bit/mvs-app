@@ -211,23 +211,39 @@ function HomePage() {
                 </div>
               </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-sky-600 dark:text-sky-400">Готово для</p>
-                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">Windows 10 и 11</p>
+              <div className="flex min-h-[208px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <div className="h-10">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-sky-600 dark:text-sky-400">Готово для</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-slate-950 dark:text-white sm:text-lg xl:text-xl" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>Windows 10 и 11</p>
+                </div>
               </div>
-              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-sky-600 dark:text-sky-400">Скорость</p>
-                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">Моментальный запуск</p>
+              <div className="flex min-h-[208px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <div className="h-10">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-sky-600 dark:text-sky-400">Скорость</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-slate-950 dark:text-white sm:text-lg xl:text-xl" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>Моментальный запуск</p>
+                </div>
               </div>
-              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">Развёртывание</p>
-                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">В несколько кликов</p>
+              <div className="flex min-h-[208px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <div className="h-10">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-sky-600 dark:text-sky-400">Развёртывание</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-slate-950 dark:text-white sm:text-lg xl:text-xl" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>В несколько кликов</p>
+                </div>
               </div>
-              <Link to="/release-notes" className="group flex min-h-[180px] h-full cursor-pointer flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">📦 Текущая версия</p>
-                <p className="mt-4 text-lg font-bold leading-tight text-slate-950 transition group-hover:text-sky-600 dark:text-white xl:text-xl">v{currentRelease.version}</p>
-                <p className="mt-1 text-sm leading-tight text-slate-600 dark:text-slate-400">{currentRelease.date}</p>
-                <p className="mt-3 text-xs leading-tight text-slate-500 transition group-hover:text-sky-600 dark:text-slate-500">Актуальная версия</p>
+              <Link to="/release-notes" className="group flex min-h-[208px] h-full cursor-pointer flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <div className="h-10">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-sky-600 dark:text-sky-400">📦 Текущая версия</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-slate-950 transition group-hover:text-sky-600 dark:text-white sm:text-lg xl:text-xl" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>v{currentRelease.version}</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>{currentRelease.date}</p>
+                </div>
+                <p className="text-xs text-slate-500 transition group-hover:text-sky-600 dark:text-slate-500" style={{ lineHeight: 1.2, wordBreak: 'normal', overflowWrap: 'break-word', whiteSpace: 'normal' }}>Актуальная версия</p>
               </Link>
             </div>
           </div>
