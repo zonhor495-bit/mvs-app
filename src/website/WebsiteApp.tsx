@@ -115,7 +115,7 @@ function PageSection({ children, className = '' }: { children: React.ReactNode; 
 
   return (
     // @ts-ignore
-    <section ref={ref} className={`opacity-0 px-6 py-16 sm:px-8 ${className}`}>
+    <section ref={ref} className={`px-6 py-16 sm:px-8 ${className}`}>
       {children}
     </section>
   );

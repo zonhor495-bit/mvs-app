@@ -158,6 +158,10 @@ body {
   50% { transform: translateY(-10px); }
 }
 
+section:not(.animate-fadeIn) {
+  opacity: 0;
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.5s ease forwards;
 }
