@@ -3,8 +3,11 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  release:
-    types: [created]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-electron-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -30,3 +33,45 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder build --win nsis --x64 --publish always
+
+      - name: Verify release assets for tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          TAG: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          $headers = @{ Authorization = "token $env:GH_TOKEN"; "User-Agent" = "mvs-release-check" }
+          $uri = "https://api.github.com/repos/$env:OWNER/$env:REPO/releases/tags/$env:TAG"
+
+          $release = $null
+          for ($i = 0; $i -lt 30; $i++) {
+            try {
+              $release = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
+              if ($release) { break }
+            } catch {
+              Start-Sleep -Seconds 10
+            }
+          }
+
+          if (-not $release) {
+            throw "Release for tag $env:TAG is not available from GitHub API"
+          }
+
+          $names = @($release.assets | ForEach-Object { $_.name })
+          Write-Host "Assets:" ($names -join ', ')
+
+          $required = @(
+            "latest.yml",
+            "MVSSetup-$($release.tag_name.TrimStart('v')).exe",
+            "MVSSetup-$($release.tag_name.TrimStart('v')).exe.blockmap"
+          )
+
+          foreach ($item in $required) {
+            if (-not ($names -contains $item)) {
+              throw "Missing release asset: $item"
+            }
+          }
+
+          Write-Host "Release assets verification passed for $($release.tag_name)"
