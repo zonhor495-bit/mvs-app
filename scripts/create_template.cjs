@@ -24,7 +24,7 @@ const labelStyle = {
 
 setCell(1, 2, 'Отчёт по заказам', { style: headerStyle });
 setCell(2, 2, 'Компания:', { style: labelStyle });
-setCell(2, 3, 'Wash&Drive');
+setCell(2, 3, 'MVS');
 setCell(3, 2, 'Период:', { style: labelStyle });
 setCell(3, 3, '');
 

@@ -105,7 +105,7 @@ export default memo(function Warehouse({ activeOrg, userRole }: WarehouseProps) 
 
   const refresh = () => setVersion(v => v + 1);
   const canEdit = userRole === 'manager';
-  const canView = userRole === 'manager' || activeOrg.warehouseAdminView !== false;
+  const canView = userRole === 'manager' || userRole === 'admin';
   const actorName = userRole === 'manager' ? 'Управляющий' : 'Администратор';
 
   const categories = useMemo(() => getWarehouseCategories(activeOrg.id), [activeOrg.id, version]);

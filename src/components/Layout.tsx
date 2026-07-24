@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
-import { User, Page, Organization } from '../types';
-import { getOrganizations } from '../store';
+import { ReactNode, useState } from 'react';
+import { User, UserRole, Page, Organization } from '../types';
+import { getOrganizations, verifyPassword } from '../store';
 
 interface LayoutProps {
   user: User;
@@ -9,6 +9,7 @@ interface LayoutProps {
   onPageChange: (page: Page) => void;
   onLogout: () => void;
   onOrgChange: (orgId: string) => void;
+  onRoleChange: (role: UserRole) => void;
   children: ReactNode;
 }
 
@@ -31,12 +32,42 @@ const navItems: { page: Page; label: string; icon: string }[] = [
   { page: 'settings', label: 'Настройки', icon: '⚙️' },
 ];
 
-export default function Layout({ user, activeOrg, currentPage, onPageChange, onLogout, onOrgChange, children }: LayoutProps) {
+export default function Layout({ user, activeOrg, currentPage, onPageChange, onLogout, onOrgChange, onRoleChange, children }: LayoutProps) {
   const orgs = getOrganizations();
   const isManager = user.role === 'manager';
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [rolePromptOpen, setRolePromptOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
+  const [rolePassword, setRolePassword] = useState('');
+  const [roleError, setRoleError] = useState('');
+
+  const roleLabel = user.role === 'manager' ? 'Управляющий' : 'Администратор';
+  const roleIcon = user.role === 'manager' ? '👑' : '🛡️';
+
+  const handleRoleSelect = (role: UserRole) => {
+    setIsRoleMenuOpen(false);
+    if (role === user.role) return;
+    setPendingRole(role);
+    setRolePromptOpen(true);
+    setRolePassword('');
+    setRoleError('');
+  };
+
+  const confirmRoleSwitch = () => {
+    if (!pendingRole) return;
+    if (!verifyPassword(pendingRole, rolePassword)) {
+      setRoleError('Неверный пароль');
+      return;
+    }
+    onRoleChange(pendingRole);
+    setRolePromptOpen(false);
+    setPendingRole(null);
+    setRolePassword('');
+    setRoleError('');
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full min-h-full overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 glass-strong flex flex-col no-print" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
         {/* Logo */}
@@ -46,8 +77,8 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
               <span className="text-lg">🚗</span>
             </div>
             <div>
-              <h1 className="text-sm font-bold text-cyan-400 neon-text">Wash&Drive</h1>
-              <p className="text-[10px] text-slate-500">Management System</p>
+              <h1 className="text-sm font-bold text-cyan-400 neon-text">MVS</h1>
+              <p className="text-[10px] text-slate-500">Car Management System</p>
             </div>
           </div>
         </div>
@@ -55,10 +86,10 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item, i) => {
-            const isDisabled =
-              (item.page === 'settings' && !isManager) ||
-              (item.page === 'warehouse' && !isManager && activeOrg.warehouseAdminView === false) ||
-              (item.page === 'analytics' && !isManager && activeOrg.analyticsAdminView === false);
+            // Администратор может видеть только: dashboard, orders, clients, pricing, cashier, analytics, reports
+            const adminCanAccess = ['dashboard', 'orders', 'clients', 'pricing', 'cashier', 'analytics', 'reports'].includes(item.page);
+            const isDisabled = !isManager && !adminCanAccess;
+            
             return (
               <button
                 key={item.page}
@@ -68,14 +99,13 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
                   currentPage === item.page
                     ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 neon-glow'
                     : isDisabled
-                    ? 'text-slate-600 cursor-not-allowed'
+                    ? 'hidden'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 <span className="text-base">{item.icon}</span>
                 <span>{item.label}</span>
-                {isDisabled && <span className="ml-auto text-[10px] text-slate-600">🔒</span>}
               </button>
             );
           })}
@@ -83,17 +113,20 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
 
         {/* User info */}
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm" style={{
-              background: isManager ? 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(59,130,246,0.3))' : 'linear-gradient(135deg, rgba(0,212,255,0.3), rgba(59,130,246,0.3))',
-              border: `1px solid ${isManager ? 'rgba(124,58,237,0.4)' : 'rgba(0,212,255,0.4)'}`
-            }}>
-              {isManager ? '👑' : '👤'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-white truncate">{isManager ? 'Управляющий' : 'Администратор'}</p>
-              <p className="text-[10px] text-slate-500">{isManager ? 'Полный доступ' : 'Ограниченный'}</p>
-            </div>
+          <div className="relative">
+            <button
+              onClick={() => setIsRoleMenuOpen(prev => !prev)}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left hover:bg-white/10 transition"
+            >
+              <p className="text-sm font-medium text-white truncate">{user.name || user.username || 'Пользователь'}</p>
+              <p className="text-xs text-slate-300 mt-1">{roleIcon} {roleLabel}</p>
+            </button>
+            {isRoleMenuOpen && (
+              <div className="absolute z-20 mt-2 w-full rounded-xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden">
+                <button onClick={() => handleRoleSelect('manager')} className="w-full px-3 py-2 text-left text-sm text-slate-100 hover:bg-white/10">👑 Управляющий</button>
+                <button onClick={() => handleRoleSelect('admin')} className="w-full px-3 py-2 text-left text-sm text-slate-100 hover:bg-white/10">🛡️ Администратор</button>
+              </div>
+            )}
           </div>
           <button
             onClick={onLogout}
@@ -109,6 +142,39 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
         {/* Top header */}
         <header className="h-16 glass flex items-center justify-between px-6 no-print" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-4">
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleMenuOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition text-sm"
+                title="Переключить роль"
+              >
+                <span className="text-lg">{roleIcon}</span>
+                <span className="text-slate-300">{roleLabel}</span>
+              </button>
+              {isRoleMenuOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 rounded-xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden z-50">
+                  <button 
+                    onClick={() => handleRoleSelect('admin')} 
+                    className={`w-full px-4 py-3 text-left text-sm transition ${user.role === 'admin' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-100 hover:bg-white/10'}`}
+                  >
+                    👤 Администратор
+                  </button>
+                  <button 
+                    onClick={() => handleRoleSelect('manager')} 
+                    className={`w-full px-4 py-3 text-left text-sm transition ${user.role === 'manager' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-100 hover:bg-white/10'}`}
+                  >
+                    👑 Управляющий
+                  </button>
+                  <div className="border-t border-white/5" />
+                  <button 
+                    onClick={() => { setIsRoleMenuOpen(false); onLogout(); }} 
+                    className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition"
+                  >
+                    🚪 Выйти из аккаунта
+                  </button>
+                </div>
+              )}
+            </div>
             <h2 className="text-lg font-semibold text-white">{activeOrg.name}</h2>
             {orgs.length > 1 && (
               <select
@@ -133,6 +199,28 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
           {children}
         </div>
       </main>
+
+      {rolePromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => { setRolePromptOpen(false); setPendingRole(null); }}>
+          <div className="modal-panel rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white">Введите пароль {pendingRole === 'manager' ? 'управляющего' : 'администратора'}</h3>
+            <input
+              autoFocus
+              type="password"
+              value={rolePassword}
+              onChange={e => { setRolePassword(e.target.value); setRoleError(''); }}
+              className="mt-4 w-full input-neon rounded-lg px-4 py-3 text-sm"
+              placeholder="Пароль"
+              onKeyDown={e => e.key === 'Enter' && confirmRoleSwitch()}
+            />
+            {roleError && <p className="text-sm text-red-400 mt-3">{roleError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => { setRolePromptOpen(false); setPendingRole(null); }} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white">Отмена</button>
+              <button onClick={confirmRoleSwitch} className="btn-neon rounded-lg px-5 py-2 text-sm">Подтвердить</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

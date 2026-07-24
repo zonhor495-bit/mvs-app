@@ -74,6 +74,7 @@ function createMainWindow() {
     minWidth: 900,
     minHeight: 680,
     show: false,
+    frame: false,
     backgroundColor: '#0b1220',
     title: 'MVS — Car Management System',
     autoHideMenuBar: true,
@@ -287,6 +288,34 @@ ipcMain.handle('updater/install-update', async () => {
 
 ipcMain.handle('updater/dismiss-update', () => {
   writeStartupLog('[updater] Update dismissed by user');
+});
+
+// Window controls for custom title bar
+ipcMain.handle('window/minimize', () => {
+  const win = BrowserWindow.getFocusedWindow() || mainWindow;
+  if (win && !win.isDestroyed()) win.minimize();
+});
+
+ipcMain.handle('window/toggle-maximize', () => {
+  const win = BrowserWindow.getFocusedWindow() || mainWindow;
+  if (!win || win.isDestroyed()) return false;
+  if (win.isMaximized()) {
+    win.unmaximize();
+    return false;
+  }
+  win.maximize();
+  return true;
+});
+
+ipcMain.handle('window/close', () => {
+  const win = BrowserWindow.getFocusedWindow() || mainWindow;
+  if (win && !win.isDestroyed()) win.close();
+});
+
+ipcMain.handle('window/is-maximized', () => {
+  const win = BrowserWindow.getFocusedWindow() || mainWindow;
+  if (!win || win.isDestroyed()) return false;
+  return win.isMaximized();
 });
 
 // Receive forwarded renderer logs/errors from preload and persist them

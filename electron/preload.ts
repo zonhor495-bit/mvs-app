@@ -43,6 +43,12 @@ contextBridge.exposeInMainWorld('electron', {
   getVersion: () => ipcRenderer.invoke('app/getVersion'),
   getAppPath: () => ipcRenderer.invoke('app/getAppPath'),
   getPath: (name: string) => ipcRenderer.invoke('app/getPath', name),
+  windowControls: {
+    minimize: () => ipcRenderer.invoke('window/minimize'),
+    toggleMaximize: () => ipcRenderer.invoke('window/toggle-maximize'),
+    close: () => ipcRenderer.invoke('window/close'),
+    isMaximized: () => ipcRenderer.invoke('window/is-maximized'),
+  },
   exportReport: (data: { orders: Array<{ id: number; date: string; service: string; amount: number; paymentMethod: string; washer: string; licensePlate: string }>; from: string; to: string; fileName: string; }) => ipcRenderer.invoke('report/exportToExcel', data),
   // Updater API
   updater: {

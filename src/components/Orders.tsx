@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Organization, Order, OrderStatus, OrderPaymentStatus, OrderService, DirtLevel, dirtLevelLabels, Box, CashPaymentMethod, generateId, Washer, Client, PaymentPart } from '../types';
-import { getOrders, addOrder, updateOrder, deleteOrder, getServices, getCarTypes, getWashers, getPrices, getShifts, addBatch, getBoxes, getWasherShiftDaysForDate, getWasherCurrentStatuses, addOrUpdateWasherCurrentStatus, calculateOrderFinancialBreakdown, calculateOrderCostBreakdown, recordOrderFinancialAccrual, recordOrderFinancialAdjustment, getFinancialSettings, upsertOrderPaymentOperation, consumeMaterialsForOrder, recalculateOrderCostFields, ensureClientAndVehicleOnOrder, createClientForOrderIfMissing, updateClientStatsAfterOrderCompletion, findVehicleByPlate, getClients, getClientRecommendationsStructured } from '../store';
+import { Organization, Order, OrderStatus, OrderPaymentStatus, OrderService, DirtLevel, dirtLevelLabels, Box, CashPaymentMethod, generateId, Washer, Client, PaymentPart, Service } from '../types';
+import { getOrders, addOrder, updateOrder, deleteOrder, getServices, getCarTypes, getWashers, getPrices, getShifts, addBatch, getBoxes, getWasherShiftDaysForDate, getWasherCurrentStatuses, addOrUpdateWasherCurrentStatus, calculateOrderFinancialBreakdown, calculateOrderCostBreakdown, recordOrderFinancialAccrual, recordOrderFinancialAdjustment, getFinancialSettings, upsertOrderPaymentOperation, consumeMaterialsForOrder, recalculateOrderCostFields, ensureClientAndVehicleOnOrder, createClientForOrderIfMissing, updateClientStatsAfterOrderCompletion, findVehicleByPlate, getClients, getClientRecommendationsStructured, incrementServicePopularity } from '../store';
 import { format, startOfMonth, isSameDay, isToday, parseISO } from 'date-fns';
 import PaginationControl from './PaginationControl';
 import { calculatePagination } from '../utils/pagination';
+import ServicePicker from './ServicePicker';
 
 interface OrdersProps {
   activeOrg: Organization;
@@ -643,7 +644,7 @@ export default function Orders({ activeOrg, userRole }: OrdersProps) {
 // Order Modal Component
 function OrderModal({ activeOrg, services, carTypes, washers, prices, boxes, allOrders, order, userRole, onClose }: {
   activeOrg: Organization;
-  services: { id: string; name: string }[];
+  services: Service[];
   carTypes: { id: string; name: string }[];
   washers: Washer[];
   prices: { serviceId: string; carTypeId: string; price: number }[];
@@ -759,7 +760,8 @@ function OrderModal({ activeOrg, services, carTypes, washers, prices, boxes, all
 
   const getServicePrice = (serviceId: string): number => {
     const p = prices.find(p => p.serviceId === serviceId && p.carTypeId === carTypeId);
-    return p?.price || 0;
+    const svc = services.find(s => s.id === serviceId);
+    return p?.price ?? svc?.price ?? 0;
   };
 
   const orderServices: OrderService[] = Array.from(selectedServices).map(sid => {
@@ -867,6 +869,13 @@ function OrderModal({ activeOrg, services, carTypes, washers, prices, boxes, all
       setErrorMessage('Оплаченный заказ нельзя перевести в другой статус. Для исправления используйте корректировку.');
       return;
     }
+
+    const previousServiceIds = new Set(order?.services.map(item => item.serviceId) || []);
+    selectedServices.forEach(serviceId => {
+      if (!order || !previousServiceIds.has(serviceId)) {
+        incrementServicePopularity(activeOrg.id, serviceId);
+      }
+    });
 
     const ct = carTypes.find(c => c.id === carTypeId);
     const selectedBox = boxes.find(b => b.id === boxId);
@@ -1247,42 +1256,29 @@ function OrderModal({ activeOrg, services, carTypes, washers, prices, boxes, all
             </div>
           </div>
 
-          {/* Услуги */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Услуги *</label>
-            <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-0.5">
-              {services.map(svc => {
-                const price = getServicePrice(svc.id);
-                const checked = selectedServices.has(svc.id);
-                return (
-                  <label
-                    key={svc.id}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all text-xs ${
-                      checked
-                        ? 'bg-cyan-500/10 border border-cyan-500/30'
-                        : 'bg-white/3 border border-white/5 hover:bg-white/5'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        setSelectedServices(prev => {
-                          const n = new Set(prev);
-                          if (n.has(svc.id)) n.delete(svc.id); else n.add(svc.id);
-                          return n;
-                        });
-                        setErrorMessage('');
-                      }}
-                      className="rounded"
-                    />
-                    <span className="flex-1 text-slate-300">{svc.name}</span>
-                    <span className="text-cyan-400">{price ? price.toLocaleString('ru-RU') : '—'}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          <ServicePicker
+            services={services}
+            prices={prices}
+            carTypeId={carTypeId}
+            selectedServices={selectedServices}
+            onToggleService={(serviceId) => {
+              setSelectedServices(prev => {
+                const next = new Set(prev);
+                if (next.has(serviceId)) next.delete(serviceId); else next.add(serviceId);
+                return next;
+              });
+              setErrorMessage('');
+            }}
+            onRemoveService={(serviceId) => {
+              setSelectedServices(prev => {
+                const next = new Set(prev);
+                next.delete(serviceId);
+                return next;
+              });
+              setErrorMessage('');
+            }}
+            title="Услуги"
+          />
 
           {/* Мойщики */}
           <div>
@@ -1616,7 +1612,7 @@ function OrderPaymentModal({
 // Batch Create Modal
 function BatchModal({ activeOrg, services, carTypes, washers, prices, onClose }: {
   activeOrg: Organization;
-  services: { id: string; name: string }[];
+  services: Service[];
   carTypes: { id: string; name: string }[];
   washers: { id: string; name: string }[];
   prices: { serviceId: string; carTypeId: string; price: number }[];
@@ -1631,7 +1627,8 @@ function BatchModal({ activeOrg, services, carTypes, washers, prices, onClose }:
 
   const getServicePrice = (serviceId: string): number => {
     const p = prices.find(p => p.serviceId === serviceId && p.carTypeId === carTypeId);
-    return p?.price || 0;
+    const svc = services.find(s => s.id === serviceId);
+    return p?.price ?? svc?.price ?? 0;
   };
 
   const orderServices: OrderService[] = Array.from(selectedServices).map(sid => ({
@@ -1647,6 +1644,12 @@ function BatchModal({ activeOrg, services, carTypes, washers, prices, onClose }:
       setErrorMessage('Заполните все поля корректно (1-100 заказов)');
       return;
     }
+
+    Array.from(selectedServices).forEach(serviceId => {
+      for (let i = 0; i < count; i++) {
+        incrementServicePopularity(activeOrg.id, serviceId);
+      }
+    });
 
     const ct = carTypes.find(c => c.id === carTypeId);
     const w = washers.find(x => x.id === washerId);
@@ -1714,28 +1717,27 @@ function BatchModal({ activeOrg, services, carTypes, washers, prices, onClose }:
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Услуги</label>
-            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-              {services.map(svc => {
-                const price = getServicePrice(svc.id);
-                const checked = selectedServices.has(svc.id);
-                return (
-                  <label key={svc.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all text-xs ${checked ? 'bg-cyan-500/10 border border-cyan-500/30' : 'bg-white/3 border border-white/5'}`}>
-                    <input type="checkbox" checked={checked} onChange={() => {
-                      setSelectedServices(prev => {
-                        const n = new Set(prev);
-                        if (n.has(svc.id)) n.delete(svc.id); else n.add(svc.id);
-                        return n;
-                      });
-                    }} className="rounded" />
-                    <span className="flex-1 text-slate-300">{svc.name}</span>
-                    <span className="text-cyan-400">{price.toLocaleString('ru-RU')}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          <ServicePicker
+            services={services}
+            prices={prices}
+            carTypeId={carTypeId}
+            selectedServices={selectedServices}
+            onToggleService={(serviceId) => {
+              setSelectedServices(prev => {
+                const next = new Set(prev);
+                if (next.has(serviceId)) next.delete(serviceId); else next.add(serviceId);
+                return next;
+              });
+            }}
+            onRemoveService={(serviceId) => {
+              setSelectedServices(prev => {
+                const next = new Set(prev);
+                next.delete(serviceId);
+                return next;
+              });
+            }}
+            title="Услуги"
+          />
 
           <div>
             <label className="block text-xs text-slate-400 mb-1">Мойщик</label>

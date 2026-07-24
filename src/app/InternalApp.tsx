@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { User, Page, Organization, generateId } from '../types';
-import { restoreSession, getOrganizations, setActiveOrgId, addOrganization, clearSession, updateUserProfile } from '../store';
+import { User, UserRole, Page, Organization, generateId } from '../types';
+import {
+  restoreSession,
+  getOrganizations,
+  setActiveOrgId,
+  addOrganization,
+  clearSession,
+  updateUserProfile,
+} from '../store';
+import { addServiceToOrganization } from '../store';
+import FirstRunWizard from '../components/FirstRunWizard';
 import Login from '../components/Login';
 import Layout from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -9,6 +18,7 @@ import Pricing from '../components/Pricing';
 import Cashier from '../components/Cashier';
 import Settings from '../components/Settings';
 import UpdateDialog from '../components/UpdateDialog';
+import WindowTitleBar from '../components/WindowTitleBar';
 // Lazy-load StressTestPanel so it is not bundled into production builds
 // Lazy load heavy components
 const Orders = lazy(() => import('../components/Orders'));
@@ -25,8 +35,9 @@ const FinanceCashFlow = lazy(() => import('../components/FinanceCashFlow'));
 const FinanceAnalytics = lazy(() => import('../components/FinanceAnalytics'));
 const DevStressTest = import.meta.env.DEV ? lazy(() => import('../components/StressTestPanel').then(m => ({ default: m.StressTestPanel }))) : null;
 
-export default function App() {
+export default function App({ onLogout: externalOnLogout }: { onLogout?: () => void }) {
   const isDev = import.meta.env.DEV;
+  const isElectron = typeof window !== 'undefined' && typeof window.electron !== 'undefined';
 
   const [user, setUser] = useState<User | null>(null);
   const [activeOrg, setActiveOrg] = useState<Organization | null>(null);
@@ -41,6 +52,18 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+  useEffect(() => {
+    if (!isElectron || typeof document === 'undefined') return;
+    const prevBg = document.body.style.background;
+    const prevColor = document.body.style.color;
+    document.body.style.background = '#020617';
+    document.body.style.color = '#e2e8f0';
+    return () => {
+      document.body.style.background = prevBg;
+      document.body.style.color = prevColor;
+    };
+  }, [isElectron]);
 
   useEffect(() => {
     const restored = restoreSession();
@@ -107,8 +130,37 @@ export default function App() {
   const handleLogin = useCallback((loggedInUser: User, orgId?: string) => {
     setUser(loggedInUser);
     const orgs = getOrganizations();
-    const org = orgId ? orgs.find(o => o.id === orgId) : orgs[0];
-    setActiveOrg(org || null);
+    const selectedOrg = orgId ? orgs.find(o => o.id === orgId) : orgs[0];
+
+    if (selectedOrg) {
+      setActiveOrg(selectedOrg);
+      setCurrentPage('dashboard');
+      return;
+    }
+
+    const defaultOrg: Organization = {
+      id: generateId(),
+      ownerId: loggedInUser.id,
+      name: 'MVS',
+      currency: 'тг',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Almaty',
+      language: 'ru',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      warehouseAdminView: true,
+      analyticsAdminView: true,
+      washerPercent: 45,
+      financialSettings: {
+        calculationMode: 'percent',
+        employeePercent: 45,
+        organizationPercent: 55,
+        salaryAmount: 0,
+        fixedOrderAmount: 0,
+      },
+    };
+    addOrganization(defaultOrg);
+    setActiveOrgId(defaultOrg.id);
+    setActiveOrg(defaultOrg);
     setCurrentPage('dashboard');
   }, []);
 
@@ -117,7 +169,12 @@ export default function App() {
     setUser(null);
     setActiveOrg(null);
     setCurrentPage('dashboard');
-  }, []);
+    
+    // Вызвать внешний callback если он есть (для переключения на экран входа)
+    if (externalOnLogout) {
+      externalOnLogout();
+    }
+  }, [externalOnLogout]);
 
   const handleOrgChange = useCallback((orgId: string) => {
     setActiveOrgId(orgId);
@@ -125,6 +182,20 @@ export default function App() {
     const org = orgs.find(o => o.id === orgId);
     if (org) setActiveOrg(org);
   }, []);
+
+  const handleRoleChange = useCallback((nextRole: UserRole) => {
+    if (!user?.id) return;
+    if (user.role === nextRole) return;
+    const updated = updateUserProfile(user.id, { role: nextRole });
+    if (updated) setUser(updated);
+    // Если администратор пытался переключиться, перенаправить на dashboard
+    if (nextRole === 'admin') {
+      const adminCanAccess = ['dashboard', 'orders', 'clients', 'pricing', 'cashier', 'analytics', 'reports'];
+      if (!adminCanAccess.includes(currentPage)) {
+        setCurrentPage('dashboard');
+      }
+    }
+  }, [user, currentPage]);
 
   const handleUpdateClick = useCallback(() => {
     if (window.electron?.updater) {
@@ -144,7 +215,7 @@ export default function App() {
     }
   }, []);
 
-  const handleSetupComplete = useCallback((payload: { washName: string; ownerName: string; timezone: string; currency: string; language: string }) => {
+  const handleSetupComplete = useCallback((payload: { washName: string; ownerName: string; timezone: string; currency: string; language: string; services?: any[] }) => {
     if (!user) return;
 
     const updatedUser = updateUserProfile(user.id || '', {
@@ -174,6 +245,16 @@ export default function App() {
     };
 
     addOrganization(organization);
+    // Добавить услуги если они были переданы
+    if (payload.services && payload.services.length > 0) {
+      payload.services.forEach(service => {
+        addServiceToOrganization(organization.id, {
+          ...service,
+          organizationId: organization.id,
+        });
+      });
+    }
+
     setActiveOrgId(organization.id);
     setActiveOrg(organization);
     setCurrentPage('dashboard');
@@ -182,6 +263,19 @@ export default function App() {
   const renderPage = () => {
     if (!user || !activeOrg) return null;
     const key = activeOrg.id;
+
+    // Администратор может видеть только: dashboard, orders, clients, pricing, cashier, analytics, reports
+    const adminCanAccess = ['dashboard', 'orders', 'clients', 'pricing', 'cashier', 'analytics', 'reports'].includes(currentPage);
+    const isPageRestricted = user.role === 'admin' && !adminCanAccess;
+
+    if (isPageRestricted) {
+      return (
+        <div className="max-w-3xl mx-auto glass rounded-xl p-6 text-slate-200">
+          <h3 className="text-lg font-semibold text-white mb-2">Недостаточно прав доступа.</h3>
+          <p className="text-sm text-slate-400">Этот раздел доступен только управляющему. Переключитесь на роль управляющего с правильным паролем.</p>
+        </div>
+      );
+    }
 
     const content = (() => {
       switch (currentPage) {
@@ -236,105 +330,47 @@ export default function App() {
     return null;
   }
 
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  if (!activeOrg) {
-    return <FirstRunSetup user={user} onLogout={handleLogout} onComplete={handleSetupComplete} />;
-  }
-
-  return (
-    <ErrorBoundary>
-      <Layout
-        user={user}
-        activeOrg={activeOrg}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        onLogout={handleLogout}
-        onOrgChange={handleOrgChange}
-      >
-        {renderPage()}
-      </Layout>
-      {isDev && DevStressTest && (
-        <Suspense fallback={null}>
-          <DevStressTest />
-        </Suspense>
-      )}
-      <UpdateDialog
-        isOpen={isUpdateDialogOpen}
-        currentVersion={currentVersion}
-        newVersion={newVersion}
-        isDownloading={isDownloading}
-        downloadProgress={downloadProgress}
-        isDark={isDarkTheme}
-        onUpdate={handleUpdateClick}
-        onDismiss={handleDismissUpdate}
-        onInstall={handleInstallUpdate}
-      />
-    </ErrorBoundary>
-  );
-}
-
-function FirstRunSetup({ user, onLogout, onComplete }: {
-  user: User;
-  onLogout: () => void;
-  onComplete: (payload: { washName: string; ownerName: string; timezone: string; currency: string; language: string }) => void;
-}) {
-  const [washName, setWashName] = useState('');
-  const [ownerName, setOwnerName] = useState(user.name || '');
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Almaty');
-  const [currency, setCurrency] = useState('тг');
-  const [language, setLanguage] = useState('ru');
-
-  const handleSubmit = () => {
-    if (!washName.trim()) return;
-    onComplete({ washName, ownerName, timezone, currency, language });
-  };
+  const content = !user
+    ? <Login onLogin={handleLogin} />
+    : !activeOrg
+    ? <FirstRunWizard user={user} onLogout={handleLogout} onComplete={handleSetupComplete} />
+    : (
+      <ErrorBoundary>
+        <Layout
+          user={user}
+          activeOrg={activeOrg}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onLogout={handleLogout}
+          onOrgChange={handleOrgChange}
+          onRoleChange={handleRoleChange}
+        >
+          {renderPage()}
+        </Layout>
+        {isDev && DevStressTest && (
+          <Suspense fallback={null}>
+            <DevStressTest />
+          </Suspense>
+        )}
+        <UpdateDialog
+          isOpen={isUpdateDialogOpen}
+          currentVersion={currentVersion}
+          newVersion={newVersion}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+          isDark={isDarkTheme}
+          onUpdate={handleUpdateClick}
+          onDismiss={handleDismissUpdate}
+          onInstall={handleInstallUpdate}
+        />
+      </ErrorBoundary>
+    );
 
   return (
-    <div className="min-h-screen flex items-center justify-center grid-bg relative overflow-hidden">
-      <div className="relative z-10 w-full max-w-2xl px-6 animate-fadeIn">
-        <div className="glass-strong rounded-2xl p-8 neon-glow">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Первоначальная настройка</h1>
-              <p className="text-sm text-slate-400 mt-1">Создайте первую автомойку. Приложение стартует полностью пустым, без демо-данных.</p>
-            </div>
-            <button onClick={onLogout} className="text-xs text-slate-500 hover:text-red-400">Выйти</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm text-slate-400 mb-2">Название автомойки</label>
-              <input value={washName} onChange={e => setWashName(e.target.value)} className="w-full input-neon rounded-lg px-4 py-3 text-sm" placeholder="Например, Aqua Drive" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">Владелец</label>
-              <input value={ownerName} onChange={e => setOwnerName(e.target.value)} className="w-full input-neon rounded-lg px-4 py-3 text-sm" placeholder="Имя владельца" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">Часовой пояс</label>
-              <input value={timezone} onChange={e => setTimezone(e.target.value)} className="w-full input-neon rounded-lg px-4 py-3 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">Валюта</label>
-              <input value={currency} onChange={e => setCurrency(e.target.value)} className="w-full input-neon rounded-lg px-4 py-3 text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">Язык</label>
-              <select value={language} onChange={e => setLanguage(e.target.value)} className="w-full input-neon rounded-lg px-4 py-3 text-sm">
-                <option value="ru">Русский</option>
-                <option value="kk">Қазақша</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button onClick={handleSubmit} className="btn-neon rounded-lg px-6 py-3 text-sm font-semibold">Создать автомойку</button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      {isElectron && <WindowTitleBar />}
+      <div className={isElectron ? 'h-[calc(100vh-44px)]' : 'min-h-screen'}>
+        {content}
       </div>
     </div>
   );

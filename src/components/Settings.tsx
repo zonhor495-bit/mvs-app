@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Organization, Box, Washer, FinanceCalculationMode, generateId } from '../types';
-import { getOrganizations, updateOrganization, deleteOrganization, addOrganization, setActiveOrgId, getBoxes, addBox, updateBox, deleteBox, getWashers, updateWasher, getWorkerTimelogs, getFinancialSettings, saveFinancialSettings } from '../store';
+import { getOrganizations, updateOrganization, deleteOrganization, addOrganization, setActiveOrgId, getBoxes, addBox, updateBox, deleteBox, getWashers, updateWasher, getWorkerTimelogs, getFinancialSettings, saveFinancialSettings, getRolePasswords, setRolePassword } from '../store';
 import LoyaltySettings from './LoyaltySettings';
 import BackupManager from './BackupManager';
+import ServiceManagement from './ServiceManagement';
 
 interface SettingsProps {
   activeOrg: Organization;
@@ -14,12 +15,15 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
   const [orgs, setOrgs] = useState(() => getOrganizations());
   const [boxes, setBoxes] = useState<Box[]>(() => getBoxes(activeOrg.id));
   const [newBoxName, setNewBoxName] = useState('');
-  const [tab, setTab] = useState<'org' | 'boxes' | 'finance' | 'backup' | 'system' | 'loyalty'>('org');
+  const [tab, setTab] = useState<'org' | 'boxes' | 'services' | 'finance' | 'backup' | 'system' | 'loyalty'>('org');
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [showNewOrg, setShowNewOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgCurrency, setNewOrgCurrency] = useState('тг');
   const [newOrgContacts, setNewOrgContacts] = useState('');
+  const [managerRolePassword, setManagerRolePassword] = useState('');
+  const [adminRolePassword, setAdminRolePassword] = useState('');
+  const [passwordSaveMessage, setPasswordSaveMessage] = useState('');
 
   const refresh = () => setOrgs(getOrganizations());
   const refreshBoxes = () => setBoxes(getBoxes(activeOrg.id));
@@ -32,6 +36,12 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
     window.addEventListener('wd-store-changed', handleStoreChanged);
     return () => window.removeEventListener('wd-store-changed', handleStoreChanged);
   }, [activeOrg.id]);
+
+  useEffect(() => {
+    const roles = getRolePasswords();
+    setManagerRolePassword(roles.manager);
+    setAdminRolePassword(roles.admin);
+  }, []);
 
   const handleAddBox = () => {
     if (!newBoxName.trim()) return;
@@ -93,18 +103,28 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
     refresh();
   };
 
+  const handleSaveRolePasswords = () => {
+    const okManager = setRolePassword('manager', managerRolePassword);
+    const okAdmin = setRolePassword('admin', adminRolePassword);
+    if (!okManager || !okAdmin) {
+      setPasswordSaveMessage('Пароли не могут быть пустыми');
+      return;
+    }
+    setPasswordSaveMessage('Пароли ролей сохранены');
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white">Настройки</h1>
 
       <div className="flex gap-2">
-        {(['org', 'boxes', 'finance', 'backup', 'system', 'loyalty'] as const).map(t => (
+        {(['org', 'boxes', 'services', 'finance', 'backup', 'system', 'loyalty'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${tab === t ? 'btn-neon' : 'text-slate-400 hover:text-white'}`}
           >
-            {t === 'org' ? '🏢 Организации' : t === 'boxes' ? '🏗 Боксы' : t === 'finance' ? '💸 Финансы' : t === 'backup' ? '💾 Бэкапы' : t === 'system' ? '⚙️ Система' : '🎁 Лояльность'}
+            {t === 'org' ? '🏢 Организации' : t === 'boxes' ? '🏗 Боксы' : t === 'services' ? '🧩 Услуги' : t === 'finance' ? '💸 Финансы' : t === 'backup' ? '💾 Бэкапы' : t === 'system' ? '⚙️ Система' : '🎁 Лояльность'}
           </button>
         ))}
       </div>
@@ -288,6 +308,10 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
         </div>
       )}
 
+      {tab === 'services' && (
+        <ServiceManagement activeOrg={activeOrg} />
+      )}
+
       {tab === 'finance' && (
         <div className="space-y-4 animate-fadeIn">
           <FinancePanel activeOrg={activeOrg} onSave={handleUpdateOrg} />
@@ -336,15 +360,32 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
 
           <div className="glass rounded-xl p-6">
             <h2 className="text-lg font-semibold text-white mb-4">🔑 Роли доступа</h2>
-            <div className="space-y-3">
-              <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
-                <p className="text-sm font-medium text-cyan-400">Администратор (пароль: 0000)</p>
-                <p className="text-xs text-slate-400 mt-1">Просмотр заказов, создание заказов, изменение статусов, просмотр отчётов</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Пароль Управляющего</label>
+                <input
+                  type="password"
+                  value={managerRolePassword}
+                  onChange={e => { setManagerRolePassword(e.target.value); setPasswordSaveMessage(''); }}
+                  className="w-full input-neon rounded-lg px-4 py-2 text-sm"
+                  placeholder="Введите пароль управляющего"
+                />
               </div>
-              <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
-                <p className="text-sm font-medium text-purple-400">Управляющий (пароль: 235792)</p>
-                <p className="text-xs text-slate-400 mt-1">Полный доступ: все настройки, управление прайсом, сотрудники, зарплаты, бэкапы</p>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Пароль Администратора</label>
+                <input
+                  type="password"
+                  value={adminRolePassword}
+                  onChange={e => { setAdminRolePassword(e.target.value); setPasswordSaveMessage(''); }}
+                  className="w-full input-neon rounded-lg px-4 py-2 text-sm"
+                  placeholder="Введите пароль администратора"
+                />
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">Пароли сохраняются локально в приложении.</p>
+                <button onClick={handleSaveRolePasswords} className="btn-neon rounded-lg px-4 py-2 text-xs">Сохранить</button>
+              </div>
+              {passwordSaveMessage && <p className="text-xs text-cyan-300">{passwordSaveMessage}</p>}
             </div>
           </div>
 

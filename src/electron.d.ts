@@ -7,6 +7,12 @@ declare global {
       getVersion(): Promise<string>;
       getAppPath(): Promise<string>;
       getPath(name: string): Promise<string>;
+      windowControls: {
+        minimize(): Promise<void>;
+        toggleMaximize(): Promise<boolean>;
+        close(): Promise<void>;
+        isMaximized(): Promise<boolean>;
+      };
       exportReport(data: {
         orders: Array<{ id: number; date: string; service: string; amount: number; paymentMethod: string; washer: string; licensePlate: string; [key: string]: any }>;
         from: string;

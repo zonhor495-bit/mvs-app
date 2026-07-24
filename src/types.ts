@@ -51,6 +51,10 @@ export interface Service {
   name: string;
   organizationId: string;
   category?: string;
+  description?: string;
+  popularity?: number;
+  fromLibrary?: boolean;
+  price?: number;
 }
 
 export interface PriceEntry {

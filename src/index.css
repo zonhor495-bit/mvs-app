@@ -206,6 +206,14 @@ select.input-neon option {
 .status-completed { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
 .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
 
+.app-drag-region {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag-region {
+  -webkit-app-region: no-drag;
+}
+
 @media print {
   .no-print { display: none !important; }
   body { background: white; color: black; overflow: visible; }

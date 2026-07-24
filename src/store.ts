@@ -31,8 +31,23 @@ const KEYS = {
   payrolls: 'wd_payrolls',
   activeOrg: 'wd_active_org',
   users: 'wd_users',
+  rolePasswords: 'wd_role_passwords',
   session: 'wd_session',
   seeded: 'wd_seeded',
+  // Новая система входа
+  isInitialized: 'wd_is_initialized',
+  authPasswords: 'wd_auth_passwords',
+  currentRole: 'wd_current_role',
+};
+
+type RolePasswords = {
+  manager: string;
+  admin: string;
+};
+
+const DEFAULT_ROLE_PASSWORDS: RolePasswords = {
+  manager: '235792',
+  admin: '0000',
 };
 
 function getTodayKey(date = new Date()): string {
@@ -120,6 +135,45 @@ export function initializeEmptyWorkspace(): void {
   });
 
   localStorage.setItem(KEYS.seeded, 'true');
+  localStorage.setItem(KEYS.rolePasswords, JSON.stringify(DEFAULT_ROLE_PASSWORDS));
+}
+
+export function getRolePasswords(): RolePasswords {
+  initializeEmptyWorkspace();
+  try {
+    const raw = localStorage.getItem(KEYS.rolePasswords);
+    if (!raw) {
+      localStorage.setItem(KEYS.rolePasswords, JSON.stringify(DEFAULT_ROLE_PASSWORDS));
+      return { ...DEFAULT_ROLE_PASSWORDS };
+    }
+    const parsed = JSON.parse(raw) as Partial<RolePasswords>;
+    const next: RolePasswords = {
+      manager: String(parsed.manager || DEFAULT_ROLE_PASSWORDS.manager),
+      admin: String(parsed.admin || DEFAULT_ROLE_PASSWORDS.admin),
+    };
+    return next;
+  } catch {
+    localStorage.setItem(KEYS.rolePasswords, JSON.stringify(DEFAULT_ROLE_PASSWORDS));
+    return { ...DEFAULT_ROLE_PASSWORDS };
+  }
+}
+
+export function setRolePassword(role: 'manager' | 'admin', password: string): boolean {
+  initializeEmptyWorkspace();
+  const nextPassword = password.trim();
+  if (!nextPassword) return false;
+  const current = getRolePasswords();
+  current[role] = nextPassword;
+  localStorage.setItem(KEYS.rolePasswords, JSON.stringify(current));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('wd-store-changed'));
+  }
+  return true;
+}
+
+export function verifyRolePassword(role: 'manager' | 'admin', password: string): boolean {
+  const current = getRolePasswords();
+  return current[role] === password;
 }
 
 function normalizeUsername(value: string): string {
@@ -3195,6 +3249,133 @@ export function addBackupLog(log: BackupLog): void {
   const data = get<BackupLog>(BACKUP_KEYS.backupLogs);
   data.push(log);
   localStorage.setItem(BACKUP_KEYS.backupLogs, JSON.stringify(data));
+}
+
+// ============================================================================
+// NEW AUTH SYSTEM - Functions for new login system with passwords
+// ============================================================================
+
+export interface AuthPasswords {
+  admin: string;
+  manager: string;
+}
+
+/**
+ * Проверить, была ли уже произведена инициализация приложения
+ */
+export function isAppInitialized(): boolean {
+  const value = localStorage.getItem(KEYS.isInitialized);
+  return value === 'true';
+}
+
+/**
+ * Отметить приложение как инициализированное
+ */
+export function setAppInitialized(): void {
+  localStorage.setItem(KEYS.isInitialized, 'true');
+}
+
+/**
+ * Сохранить пароли для входа
+ */
+export function saveAuthPasswords(passwords: AuthPasswords): void {
+  localStorage.setItem(KEYS.authPasswords, JSON.stringify(passwords));
+  setAppInitialized();
+}
+
+/**
+ * Получить сохранённые пароли
+ */
+export function getAuthPasswords(): AuthPasswords | null {
+  const data = localStorage.getItem(KEYS.authPasswords);
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Проверить пароль для роли
+ */
+export function verifyPassword(
+  role: 'admin' | 'manager',
+  password: string
+): boolean {
+  const passwords = getAuthPasswords();
+  if (!passwords) return false;
+  return passwords[role] === password;
+}
+
+/**
+ * Сохранить текущую роль
+ */
+export function setCurrentRole(role: 'admin' | 'manager'): void {
+  localStorage.setItem(KEYS.currentRole, role);
+}
+
+/**
+ * Получить текущую роль
+ */
+export function getCurrentRole(): 'admin' | 'manager' {
+  const role = localStorage.getItem(KEYS.currentRole);
+  return (role === 'admin' || role === 'manager') ? role : 'admin';
+}
+
+/**
+ * Выйти из приложения (очистить текущую роль)
+ */
+export function logout(): void {
+  localStorage.removeItem(KEYS.currentRole);
+  localStorage.removeItem(KEYS.session);
+}
+
+/**
+ * Управление услугами автомойки
+ */
+export function addServiceToOrganization(organizationId: string, service: Service): void {
+  const data = getWorkspaceRaw();
+  data.services = data.services || [];
+  const existingIndex = data.services.findIndex(s => s.id === service.id && s.organizationId === organizationId);
+  const serviceToSave = { ...service, organizationId };
+  if (existingIndex >= 0) {
+    data.services[existingIndex] = serviceToSave;
+  } else {
+    data.services.push(serviceToSave);
+  }
+  saveWorkspace(data);
+}
+
+export function removeServiceFromOrganization(organizationId: string, serviceId: string): void {
+  const data = getWorkspaceRaw();
+  data.services = (data.services || []).filter(s => !(s.id === serviceId && s.organizationId === organizationId));
+  saveWorkspace(data);
+}
+
+export function updateServicePrice(organizationId: string, serviceId: string, price: number): void {
+  const data = getWorkspaceRaw();
+  const service = (data.services || []).find(s => s.id === serviceId && s.organizationId === organizationId);
+  if (service) {
+    (service as any).price = price;
+    saveWorkspace(data);
+  }
+}
+
+export function incrementServicePopularity(organizationId: string, serviceId: string): void {
+  const data = getWorkspaceRaw();
+  const service = (data.services || []).find(s => s.id === serviceId && s.organizationId === organizationId);
+  if (service) {
+    service.popularity = (service.popularity || 0) + 1;
+    saveWorkspace(data);
+  }
+}
+
+export function getTopServicesForOrganization(organizationId: string, limit: number = 10): Service[] {
+  const services = getServicesForOrganization(organizationId);
+  return services
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+    .slice(0, limit);
 }
 
 function generateChecksum(): string {
