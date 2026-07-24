@@ -32,6 +32,56 @@ const currentRelease = {
   ],
 };
 
+// Размер файлов для каждой версии в МБ
+const fileSizes: Record<string, number> = {
+  '1.1.0': 84,
+  '1.0.3': 82,
+  '1.0.2': 81,
+  '1.0.1': 80,
+  '1.0.0': 79,
+};
+
+// История релизов
+const releaseHistory = [
+  {
+    version: '1.1.0',
+    date: __RELEASE_DATE__,
+    title: 'Система управления услугами',
+    features: [
+      'Система управления услугами',
+      'First Run Wizard',
+      'TOP-10 популярных услуг',
+      'Улучшения производительности',
+    ],
+    fixes: [
+      'Оптимизация работы приложения',
+      'Исправления ошибок в сохранении данных',
+    ],
+  },
+  {
+    version: '1.0.3',
+    date: '10 июля 2026',
+    title: 'Исправления и оптимизация',
+    features: [
+      'Улучшенный интерфейс управления смен',
+    ],
+    fixes: [
+      'Исправлены ошибки при работе с большим объёмом данных',
+      'Улучшена стабильность приложения',
+      'Оптимизирована работа с памятью',
+    ],
+  },
+  {
+    version: '1.0.2',
+    date: '5 июля 2026',
+    title: 'Раннее развёртывание',
+    features: [
+      'Первая публичная версия',
+    ],
+    fixes: [],
+  },
+];
+
 function Logo() {
   return (
     <div className="h-10 w-10 rounded-2xl border border-slate-200/80 bg-white/90 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center text-sm font-bold text-sky-600 dark:text-sky-400">
@@ -142,24 +192,43 @@ function HomePage() {
               </a>
               <Link to="/features" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Посмотреть возможности</Link>
             </div>
+              <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-400">
+                <div className="flex items-center justify-between">
+                  <span>Версия:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">v{currentRelease.version}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Файл:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">MVSSetup-{currentRelease.version}.exe</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Размер:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{fileSizes[currentRelease.version] || 84} МБ</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Дата выпуска:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{currentRelease.date}</span>
+                </div>
+              </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-400">Готово для</p>
-                <p className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">Windows 10 и 11</p>
+              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-sky-600 dark:text-sky-400">Готово для</p>
+                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">Windows 10 и 11</p>
               </div>
-              <div className="rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-400">Скорость</p>
-                <p className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">Моментальный запуск</p>
+              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-sky-600 dark:text-sky-400">Скорость</p>
+                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">Моментальный запуск</p>
               </div>
-              <div className="rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
-                <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-400">Развёртывание</p>
-                <p className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">В несколько кликов</p>
+              <div className="flex min-h-[180px] h-full flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">Развёртывание</p>
+                <p className="mt-4 text-lg font-semibold leading-tight text-slate-950 dark:text-white xl:text-xl">В несколько кликов</p>
               </div>
-              <div className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 shadow-xl shadow-sky-200/30 transition hover:-translate-y-1 hover:shadow-sky-300/30 dark:border-sky-900/60 dark:from-slate-900 dark:to-slate-950 dark:shadow-black/20">
-                <p className="text-xs uppercase tracking-[0.35em] text-sky-700 dark:text-sky-300">📦 Текущая версия</p>
-                <p className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">v{currentRelease.version}</p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Актуальная версия</p>
-              </div>
+              <Link to="/release-notes" className="group flex min-h-[180px] h-full cursor-pointer flex-col justify-between rounded-3xl bg-white/90 p-6 shadow-xl shadow-slate-200/50 transition hover:-translate-y-1 hover:shadow-sky-300/20 dark:bg-slate-900 dark:shadow-black/20">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">📦 Текущая версия</p>
+                <p className="mt-4 text-lg font-bold leading-tight text-slate-950 transition group-hover:text-sky-600 dark:text-white xl:text-xl">v{currentRelease.version}</p>
+                <p className="mt-1 text-sm leading-tight text-slate-600 dark:text-slate-400">{currentRelease.date}</p>
+                <p className="mt-3 text-xs leading-tight text-slate-500 transition group-hover:text-sky-600 dark:text-slate-500">Актуальная версия</p>
+              </Link>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-sky-100/80 to-white p-8 shadow-2xl shadow-slate-200/30 dark:border-slate-800 dark:from-slate-900/70 dark:to-slate-950 dark:shadow-black/20">
@@ -425,6 +494,85 @@ function DownloadPage() {
   );
 }
 
+function ReleaseNotesPage() {
+  return (
+    <main>
+      <PageSection className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+        <div className="mx-auto max-w-5xl">
+          <div className="space-y-3 mb-12">
+            <Link to="/" className="inline-flex text-sm font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400">← Вернуться</Link>
+            <h1 className="text-4xl font-semibold">История версий</h1>
+            <p className="text-lg leading-8 text-slate-600 dark:text-slate-300">Все выпуски MVS с описанием новых функций и исправлений</p>
+          </div>
+
+          <div className="space-y-8">
+            {releaseHistory.map((release, idx) => (
+              <div key={release.version} className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition">
+                <div className={`p-6 ${idx === 0 ? 'bg-gradient-to-br from-sky-50 to-white dark:from-slate-900 dark:to-slate-950 border-b border-sky-200 dark:border-sky-900' : 'bg-white dark:bg-slate-900'}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-bold text-slate-950 dark:text-white">v{release.version}</h2>
+                        {idx === 0 && (
+                          <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">Текущая версия</span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Дата выпуска: {release.date}</p>
+                      <p className="mt-1 text-base font-medium text-slate-900 dark:text-white">{release.title}</p>
+                    </div>
+                    <a
+                      href={`https://github.com/zonhor495-bit/mvs-app/releases/tag/v${release.version}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                    >
+                      На GitHub →
+                    </a>
+                  </div>
+
+                  {release.features.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <p className="text-sm font-semibold text-sky-700 dark:text-sky-400">🎉 Новое</p>
+                      <ul className="mt-3 space-y-2">
+                        {release.features.map((feature) => (
+                          <li key={feature} className="text-sm text-slate-700 dark:text-slate-300">✅ {feature}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {release.fixes.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">🔧 Исправления</p>
+                      <ul className="mt-3 space-y-2">
+                        {release.fixes.map((fix) => (
+                          <li key={fix} className="text-sm text-slate-700 dark:text-slate-300">🐛 {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center dark:border-slate-800 dark:bg-slate-900/50">
+            <h3 className="text-lg font-semibold text-slate-950 dark:text-white">Готовы начать?</h3>
+            <p className="mt-2 text-slate-600 dark:text-slate-400">Скачайте последнюю версию MVS и запустите профессиональное управление автомойкой</p>
+            <a
+              href={currentRelease.downloadUrl}
+              download={`MVSSetup-${currentRelease.version}.exe`}
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500"
+            >
+              ⬇ Скачать v{currentRelease.version}
+            </a>
+          </div>
+        </div>
+      </PageSection>
+    </main>
+  );
+}
+
 function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white/95 py-10 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-400">
@@ -475,6 +623,8 @@ export default function WebsiteApp() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/support" element={<SupportPage />} />
           <Route path="/download" element={<DownloadPage />} />
+          <Route path="/release-notes" element={<ReleaseNotesPage />} />
+          <Route path="/changelog" element={<ReleaseNotesPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
