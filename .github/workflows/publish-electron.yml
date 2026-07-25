@@ -32,6 +32,8 @@ jobs:
       - name: Build Electron and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: npx electron-builder build --win nsis --x64 --publish always
 
       - name: Verify release assets for tag
