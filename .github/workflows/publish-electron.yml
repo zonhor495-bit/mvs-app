@@ -45,9 +45,16 @@ jobs:
         shell: pwsh
         run: |
           $headers = @{ Authorization = "token $env:GH_TOKEN"; "User-Agent" = "mvs-release-publish" }
-          $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/zonhor495-bit/mvs-app/releases" -Headers $headers -Method Get
-          $release = $releases | Where-Object { $_.tag_name -eq "${{ github.ref_name }}" } | Select-Object -First 1
-          if (-not $release) { throw "Draft release for tag ${{ github.ref_name }} not found" }
+          $release = $null
+          for ($i = 0; $i -lt 20; $i++) {
+            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/zonhor495-bit/mvs-app/releases?per_page=100" -Headers $headers -Method Get
+            $release = $releases | Where-Object { $_.tag_name -eq "${{ github.ref_name }}" } | Select-Object -First 1
+            if ($release) { break }
+            Write-Host "Waiting for draft release (attempt $($i+1))..."
+            Start-Sleep -Seconds 10
+          }
+          if (-not $release) { throw "Draft release for tag ${{ github.ref_name }} not found after retries" }
+          Write-Host "Found release id=$($release.id) draft=$($release.draft)"
           $body = '{"draft":false}'
           Invoke-RestMethod -Uri "https://api.github.com/repos/zonhor495-bit/mvs-app/releases/$($release.id)" -Headers $headers -Method Patch -Body $body -ContentType "application/json"
           Write-Host "Published release $($release.id) for tag ${{ github.ref_name }}"
