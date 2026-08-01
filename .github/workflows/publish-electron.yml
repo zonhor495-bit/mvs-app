@@ -39,6 +39,14 @@ jobs:
           EP_DRAFT: false
         run: npx electron-builder build --win nsis --x64 --publish always
 
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit ${{ github.ref_name }} \
+            --draft=false \
+            --repo zonhor495-bit/mvs-app
+
       - name: Verify release assets for tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
