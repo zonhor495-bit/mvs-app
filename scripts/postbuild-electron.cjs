@@ -19,6 +19,19 @@ for (const [src, dest] of renames) {
   }
 }
 
+const localPkgPath = path.join(out, 'package.json');
+try {
+  fs.writeFileSync(
+    localPkgPath,
+    JSON.stringify({ type: 'commonjs' }, null, 2) + '\n',
+    'utf8'
+  );
+  console.log(`Wrote ${localPkgPath} with type=commonjs`);
+} catch (e) {
+  console.error(`Failed to write ${localPkgPath}:`, e);
+  process.exitCode = 1;
+}
+
 const templateSrc = path.resolve(__dirname, '..', 'electron', 'template.xlsx');
 const templateDest = path.join(out, 'template.xlsx');
 if (fs.existsSync(templateSrc)) {
