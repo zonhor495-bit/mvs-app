@@ -42,10 +42,8 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit ${{ github.ref_name }} \
-            --draft=false \
-            --repo zonhor495-bit/mvs-app
+        shell: pwsh
+        run: gh release edit ${{ github.ref_name }} --draft=false --repo zonhor495-bit/mvs-app
 
       - name: Verify release assets for tag
         env:
