@@ -43,7 +43,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
-        run: gh release edit ${{ github.ref_name }} --draft=false --repo zonhor495-bit/mvs-app
+        run: |
+          $headers = @{ Authorization = "token $env:GH_TOKEN"; "User-Agent" = "mvs-release-publish" }
+          $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/zonhor495-bit/mvs-app/releases" -Headers $headers -Method Get
+          $release = $releases | Where-Object { $_.tag_name -eq "${{ github.ref_name }}" } | Select-Object -First 1
+          if (-not $release) { throw "Draft release for tag ${{ github.ref_name }} not found" }
+          $body = '{"draft":false}'
+          Invoke-RestMethod -Uri "https://api.github.com/repos/zonhor495-bit/mvs-app/releases/$($release.id)" -Headers $headers -Method Patch -Body $body -ContentType "application/json"
+          Write-Host "Published release $($release.id) for tag ${{ github.ref_name }}"
 
       - name: Verify release assets for tag
         env:
