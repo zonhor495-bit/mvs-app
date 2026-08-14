@@ -202,6 +202,6 @@ console.log('   - Account recovered with original data');
 console.log('');
 console.log('Q: WHICH final .exe to install?');
 console.log(`A: ${installerPath}`);
-console.log('   v1.1.7, includes .env.production config');
+console.log('   v1.1.8, includes .env.production config');
 console.log('');
 console.log('═══════════════════════════════════════════════════════════════');

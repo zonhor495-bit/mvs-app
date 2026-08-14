@@ -8,7 +8,7 @@
 
 | File | Purpose |
 |------|---------|
-| **[build/win/MVSSetup.exe](build/win/MVSSetup.exe)** | 📦 Final Windows installer (v1.1.7, 84.1 MB) |
+| **[build/win/MVSSetup.exe](build/win/MVSSetup.exe)** | 📦 Final Windows installer (v1.1.8, 84.1 MB) |
 | **[.env.production](.env.production)** | ⚙️ Production configuration (backend URL) |
 | **[.env.development](.env.development)** | ⚙️ Development configuration (localhost:4000) |
 | **[src/store.ts](src/store.ts)** | 📜 getRemoteAuthUrl() implementation |
@@ -111,7 +111,7 @@ const [mode, setMode] = useState<'login' | 'register'>(
 **Answer:** `/Users/maksim/Desktop/carwin0.4.7/build/win/MVSSetup.exe`
 
 **Details:**
-- **Version:** v1.1.7
+- **Version:** v1.1.8
 - **Size:** 84.1 MB
 - **Contains:**
   - ✅ app.asar (React app + CJS fix)

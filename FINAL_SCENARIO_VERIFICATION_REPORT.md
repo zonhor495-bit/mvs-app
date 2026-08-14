@@ -98,7 +98,7 @@ VITE_AUTH_SERVER_URL=http://localhost:4000
 **Answer: `/Users/maksim/Desktop/carwin0.4.7/build/win/MVSSetup.exe`**
 
 **Details:**
-- **Version:** v1.1.7
+- **Version:** v1.1.8
 - **Size:** 84.1 MB
 - **Built:** with npm run build
 - **Contains:**

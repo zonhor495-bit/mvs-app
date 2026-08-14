@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, useLocation } from 'react-router-dom';
+import { versionHistory, getCurrentVersionInfo, fileSizes as versionFileSizes } from './versions';
 
 const features = [
   { title: 'Заказы и услуги', description: 'Принимайте заказы, рассчитывайте услуги и имейте полный контроль над процессом.', icon: '📋' },
@@ -19,68 +20,10 @@ const faqs = [
   { question: 'Что делать, если нужно восстановить данные?', answer: 'Данные хранятся локально. Вы можете делать резервные копии базы и легко восстанавливать их через встроенный экспорт/импорт.' },
 ];
 
-const currentRelease = {
-  version: __APP_VERSION__,
-  date: __RELEASE_DATE__,
-  downloadUrl: `https://github.com/zonhor495-bit/mvs-app/releases/download/v${__APP_VERSION__}/MVSSetup-${__APP_VERSION__}.exe`,
-  fullChangesUrl: `https://github.com/zonhor495-bit/mvs-app/releases/tag/v${__APP_VERSION__}`,
-  whatsNew: [
-    'Система управления услугами',
-    'First Run Wizard',
-    'TOP-10 популярных услуг',
-    'Улучшения производительности',
-  ],
-};
+const currentRelease = getCurrentVersionInfo(__APP_VERSION__, __RELEASE_DATE__);
 
-// Размер файлов для каждой версии в МБ
-const fileSizes: Record<string, number> = {
-  '1.1.0': 84,
-  '1.0.3': 82,
-  '1.0.2': 81,
-  '1.0.1': 80,
-  '1.0.0': 79,
-};
-
-// История релизов
-const releaseHistory = [
-  {
-    version: '1.1.0',
-    date: __RELEASE_DATE__,
-    title: 'Система управления услугами',
-    features: [
-      'Система управления услугами',
-      'First Run Wizard',
-      'TOP-10 популярных услуг',
-      'Улучшения производительности',
-    ],
-    fixes: [
-      'Оптимизация работы приложения',
-      'Исправления ошибок в сохранении данных',
-    ],
-  },
-  {
-    version: '1.0.3',
-    date: '10 июля 2026',
-    title: 'Исправления и оптимизация',
-    features: [
-      'Улучшенный интерфейс управления смен',
-    ],
-    fixes: [
-      'Исправлены ошибки при работе с большим объёмом данных',
-      'Улучшена стабильность приложения',
-      'Оптимизирована работа с памятью',
-    ],
-  },
-  {
-    version: '1.0.2',
-    date: '5 июля 2026',
-    title: 'Раннее развёртывание',
-    features: [
-      'Первая публичная версия',
-    ],
-    fixes: [],
-  },
-];
+// История релизов из централизованного файла версий
+const releaseHistory = versionHistory;
 
 function Logo() {
   return (
@@ -442,29 +385,47 @@ function DownloadPage() {
               <h2 className="mt-3 text-4xl font-semibold">MVS для Windows</h2>
               <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">Запуск профессионального ПО для автомойки: установка, ярлыки и деинсталлятор в одном пакете.</p>
 
-              <div className="mt-8 rounded-3xl border border-sky-200 bg-sky-50/70 p-6 dark:border-sky-900/60 dark:bg-slate-950/80">
-                <p className="text-xs uppercase tracking-[0.3em] text-sky-700 dark:text-sky-300">Последняя версия MVS</p>
-                <p className="mt-3 text-base text-slate-700 dark:text-slate-200">
-                  Текущая версия: <span className="font-semibold">{currentRelease.version}</span>
-                </p>
-                <p className="mt-1 text-base text-slate-700 dark:text-slate-200">
-                  Дата выпуска: <span className="font-semibold">{currentRelease.date}</span>
-                </p>
+              <div className="mt-8 rounded-3xl border-2 border-sky-200 bg-gradient-to-br from-sky-50/80 to-sky-100/40 p-8 dark:border-sky-900/40 dark:from-slate-900/60 dark:to-slate-950">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] font-semibold text-sky-700 dark:text-sky-300">Последняя версия</p>
+                    <p className="mt-2 text-5xl font-bold text-slate-900 dark:text-white">{currentRelease.version}</p>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Выпущена: <span className="font-semibold">{currentRelease.date}</span></p>
+                    <div className="mt-4 inline-block rounded-full bg-green-100/80 px-4 py-1 text-sm font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                      ✓ Актуальная версия
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Размер файла</p>
+                    <p className="text-2xl font-semibold text-slate-900 dark:text-white">{versionFileSizes[currentRelease.version] || 84} МБ</p>
+                  </div>
+                </div>
 
-                <div className="mt-5">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Что нового</p>
-                  <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                    {currentRelease.whatsNew.map((item) => (
-                      <li key={item}>✅ {item}</li>
-                    ))}
-                  </ul>
+                <div className="mt-8 space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Что нового в этой версии</p>
+                    <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                      {currentRelease.whatsNew.map((item) => (
+                        <li key={item}>✨ {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    to="/changelog"
+                    className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500"
+                  >
+                    📖 Что нового в {currentRelease.version}
+                  </Link>
                   <a
                     href={currentRelease.fullChangesUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-4 inline-flex text-sm font-medium text-sky-700 transition hover:text-sky-600 dark:text-sky-300 dark:hover:text-sky-200"
+                    className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/80 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:bg-slate-800"
                   >
-                    → Полный список изменений
+                    → GitHub Releases
                   </a>
                 </div>
               </div>
@@ -473,22 +434,16 @@ function DownloadPage() {
                 <a
                   href={currentRelease.downloadUrl}
                   download={`MVSSetup-${currentRelease.version}.exe`}
-                  className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500"
+                  className="inline-flex items-center justify-center rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-500 dark:shadow-sky-500/10"
                 >
-                  ⬇ Скачать MVS для Windows
+                  ⬇️ Скачать MVS {currentRelease.version}
                 </a>
-                <a href="/support" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Нужна помощь?</a>
-              </div>
-              <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
-                <p className="text-slate-700 dark:text-slate-300">
-                  <span className="font-semibold">Версия:</span> {currentRelease.version}
-                </p>
-                <p className="text-slate-700 dark:text-slate-300">
-                  <span className="font-semibold">Дата выпуска:</span> {currentRelease.date}
-                </p>
+                <a href="/support" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-8 py-4 text-base font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">
+                  ❓ Нужна помощь?
+                </a>
               </div>
               <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
-                Автообновление поддерживается. Если MVS уже установлен, новые версии будут предлагаться автоматически.
+                💡 Автообновление поддерживается. Если MVS уже установлен, новые версии будут предлагаться автоматически.
               </p>
             </div>
             <div className="rounded-[1.75rem] bg-slate-950 p-8 text-slate-100 shadow-xl dark:bg-slate-900">

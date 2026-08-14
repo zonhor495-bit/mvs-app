@@ -342,4 +342,4 @@ systemctl start mvs-auth-server
 
 **Last Updated:** $(date)
 **Status:** Production Ready
-**Version:** 1.1.7
+**Version:** 1.1.8

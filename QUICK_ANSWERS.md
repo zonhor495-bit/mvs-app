@@ -130,7 +130,7 @@ src/components/Settings.tsx:421  ← Explicit button only
 **Details:**
 | Property | Value |
 |----------|-------|
-| **Version** | v1.1.7 |
+| **Version** | v1.1.8 |
 | **Size** | 84.1 MB |
 | **Status** | ✅ Ready for production |
 | **Contains** | app.asar + CJS fix + backend config |

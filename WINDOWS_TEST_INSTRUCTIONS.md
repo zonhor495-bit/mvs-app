@@ -1,9 +1,9 @@
-# Windows Test Instructions — MVS v1.1.7
+# Windows Test Instructions — MVS v1.1.8
 
 ## Preparation
 
 1. **Download installer:**
-   - Navigate to: https://github.com/yourusername/carwin/releases/tag/v1.1.7
+   - Navigate to: https://github.com/yourusername/carwin/releases/tag/v1.1.8
    - Download: `MVSSetup.exe` (84 MB)
 
 2. **System requirements:**
@@ -45,7 +45,7 @@
    ================================================================================
    STARTUP LOG - 2026-08-13T...
    ================================================================================
-   [2026-08-13T...] App Version: 1.1.7
+   [2026-08-13T...] App Version: 1.1.8
    [2026-08-13T...] isDev: false, isPackaged: true
    [2026-08-13T...] Main window created
    ...
@@ -125,7 +125,7 @@ If any issues occur:
 
 ## Rollback
 
-If v1.1.7 is unstable, uninstall and reinstall previous version:
+If v1.1.8 is unstable, uninstall and reinstall previous version:
 
 ```
 Control Panel → Programs → Programs and Features
@@ -138,4 +138,4 @@ Control Panel → Programs → Programs and Features
 
 **Build Date:** August 13, 2026  
 **Commit:** 434cf1c  
-**Tag:** v1.1.7
+**Tag:** v1.1.8

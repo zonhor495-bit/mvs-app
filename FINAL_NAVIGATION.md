@@ -40,7 +40,7 @@ You asked 5 specific questions. **All are answered below with exact code locatio
 **Answer:** [QUICK_ANSWERS.md#WHICH](QUICK_ANSWERS.md#-which-final-exe-to-install)
 - Path: `/Users/maksim/Desktop/carwin0.4.7/build/win/MVSSetup.exe`
 - Size: 84.1 MB
-- Version: v1.1.7
+- Version: v1.1.8
 
 ---
 

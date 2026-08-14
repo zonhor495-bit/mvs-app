@@ -12,7 +12,7 @@
 | **HOW register initially?** | Login.tsx auto-detects first-run, shows register option via toggle |
 | **WHAT on deinstall?** | ✅ Account persists on server. NO auto-delete. Only explicit button works. |
 | **HOW post-reinstall?** | Backend URL pre-configured in build. Login form appears. User logs in. |
-| **WHICH .exe?** | `/Users/maksim/Desktop/carwin0.4.7/build/win/MVSSetup.exe` (84.1 MB, v1.1.7) |
+| **WHICH .exe?** | `/Users/maksim/Desktop/carwin0.4.7/build/win/MVSSetup.exe` (84.1 MB, v1.1.8) |
 
 ---
 
