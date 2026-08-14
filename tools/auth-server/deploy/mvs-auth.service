@@ -1,0 +1,18 @@
+[Unit]
+Description=MVS Auth Server
+After=network.target
+
+[Service]
+Type=simple
+User=mvs
+Group=mvs
+WorkingDirectory=/opt/mvs-auth-server
+# Environment file with JWT_SECRET, DB_FILE, AUTH_ALLOWED_ORIGIN, PORT, BIND_ADDR
+EnvironmentFile=/etc/mvs/auth.env
+ExecStart=/usr/bin/node /opt/mvs-auth-server/src/index.js
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
