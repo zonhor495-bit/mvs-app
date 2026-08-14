@@ -55,6 +55,28 @@ function dbReady$ (req, res, next) {
   next();
 }
 
+// Health check endpoints (no DB required)
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    service: 'mvs-auth-server'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    status: 'healthy'
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    status: 'healthy'
+  });
+});
+
 app.use(dbReady$);
 
 app.post('/api/register', async (req, res) => {
