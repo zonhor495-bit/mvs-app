@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { User } from '../types';
-import { authenticateLocalUser, getActiveOrgId, getOrganizationsForUser, getUserByUsername, hasUsers, registerLocalUser, setActiveOrgId, startSession } from '../store';
+import { authenticateLocalUser, getActiveOrgId, getOrganizationsForUser, getUserByUsername, hasUsers, registerLocalUser, setActiveOrgId, startSession, getRemoteAuthUrl, registerRemoteUser, loginRemoteUser, upsertUserFromRemote } from '../store';
 
 interface LoginProps {
   onLogin: (user: User, orgId?: string) => void;
@@ -8,7 +8,10 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const hasAnyUsers = useMemo(() => hasUsers(), []);
-  const [mode, setMode] = useState<'login' | 'register'>(hasAnyUsers ? 'login' : 'register');
+  const remoteUrl = useMemo(() => getRemoteAuthUrl(), []);
+  // Always prefer remote auth if available; only use local as fallback
+  const useRemote = !!remoteUrl;
+  const [mode, setMode] = useState<'login' | 'register'>(useRemote ? 'login' : (hasAnyUsers ? 'login' : 'register'));
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');
@@ -66,36 +69,68 @@ export default function Login({ onLogin }: LoginProps) {
           return;
         }
 
-        const salt = createSalt();
-        const passwordHash = await hashPassword(password, salt);
-        const created = registerLocalUser({
-          username: normalizedUsername,
-          passwordHash,
-          passwordSalt: salt,
-          name: displayName.trim() || normalizedUsername,
-        });
-        if (!created.ok || !created.user) {
-          setError(created.error || 'Не удалось создать аккаунт');
+        if (useRemote) {
+          // Always use remote for registration
+          const passwordHash = await hashPassword(password, '');
+          const res = await registerRemoteUser({ username: normalizedUsername, passwordHash, name: displayName.trim() || normalizedUsername });
+          if (!res.ok || !res.user || !res.token) {
+            setError(res.error || 'Не удалось создать аккаунт на сервере');
+            return;
+          }
+          // Save user locally and start session with token
+          const local = upsertUserFromRemote(res.user);
+          startSession(local, undefined, res.token);
+          onLogin(local, undefined);
+          return;
+        } else {
+          // Fallback to local registration
+          const salt = createSalt();
+          const passwordHash = await hashPassword(password, salt);
+          const created = registerLocalUser({
+            username: normalizedUsername,
+            passwordHash,
+            passwordSalt: salt,
+            name: displayName.trim() || normalizedUsername,
+          });
+          if (!created.ok || !created.user) {
+            setError(created.error || 'Не удалось создать аккаунт');
+            return;
+          }
+          completeLogin(created.user);
           return;
         }
-        completeLogin(created.user);
-        return;
       }
 
-      const existing = getUserByUsername(normalizedUsername);
-      if (!existing?.passwordSalt) {
-        setError('Неверный логин или пароль');
+      // Login
+      if (useRemote) {
+        // Always use remote for login
+        const passwordHash = await hashPassword(password, '');
+        const res = await loginRemoteUser({ username: normalizedUsername, passwordHash });
+        if (!res.ok || !res.user || !res.token) {
+          setError(res.error || 'Неверный логин или пароль');
+          return;
+        }
+        const local = upsertUserFromRemote(res.user);
+        startSession(local, undefined, res.token);
+        onLogin(local, undefined);
         return;
+      } else {
+        // Fallback to local login
+        const existing = getUserByUsername(normalizedUsername);
+        if (!existing?.passwordSalt) {
+          setError('Неверный логин или пароль');
+          return;
+        }
+        const passwordHash = await hashPassword(password, existing.passwordSalt);
+        const authUser = authenticateLocalUser({ username: normalizedUsername, passwordHash });
+        if (!authUser) {
+          setError('Неверный логин или пароль');
+          return;
+        }
+        completeLogin(authUser);
       }
-      const passwordHash = await hashPassword(password, existing.passwordSalt);
-      const authUser = authenticateLocalUser({ username: normalizedUsername, passwordHash });
-      if (!authUser) {
-        setError('Неверный логин или пароль');
-        return;
-      }
-
-      completeLogin(authUser);
-    } catch {
+    } catch (e) {
+      console.error('Auth error:', e);
       setError('Ошибка авторизации');
     } finally {
       setIsBusy(false);
@@ -130,7 +165,9 @@ export default function Login({ onLogin }: LoginProps) {
           </h2>
 
           <div className="mb-6 text-center text-sm text-slate-300">
-            {mode === 'register'
+            {useRemote
+              ? 'Облачная авторизация через Render'
+              : mode === 'register'
               ? 'Создайте локальный аккаунт администратора. Данные хранятся только в приложении.'
               : 'Введите логин и пароль для входа в локальный аккаунт.'}
           </div>
@@ -188,7 +225,7 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-xs text-slate-300">Локальная авторизация • без внешних сервисов</p>
+            <p className="text-xs text-slate-300">{useRemote ? 'Облачная авторизация' : 'Локальная авторизация'} • {useRemote ? 'Render' : 'без внешних сервисов'}</p>
             <button
               onClick={() => {
                 setError('');
@@ -201,7 +238,7 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-300 mt-6">v1.0 • Offline Mode</p>
+        <p className="text-center text-xs text-slate-300 mt-6">v1.0 • {useRemote ? 'Remote' : 'Offline'} Mode</p>
       </div>
     </div>
   );

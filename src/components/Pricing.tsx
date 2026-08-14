@@ -51,14 +51,34 @@ export default function Pricing({ activeOrg, userRole }: PricingProps) {
 
   const handleAddService = () => {
     if (!newServiceName.trim()) return;
-    addService({ id: generateId(), name: newServiceName.trim(), organizationId: activeOrg.id });
+    const service = { id: generateId(), name: newServiceName.trim(), organizationId: activeOrg.id };
+    addService(service);
+    carTypes.forEach(carType => {
+      setPrice({
+        id: generateId(),
+        serviceId: service.id,
+        carTypeId: carType.id,
+        price: 0,
+        organizationId: activeOrg.id,
+      });
+    });
     setNewServiceName('');
     refresh();
   };
 
   const handleAddCarType = () => {
     if (!newCarTypeName.trim()) return;
-    addCarType({ id: generateId(), name: newCarTypeName.trim(), organizationId: activeOrg.id });
+    const carType = { id: generateId(), name: newCarTypeName.trim(), organizationId: activeOrg.id };
+    addCarType(carType);
+    services.forEach(service => {
+      setPrice({
+        id: generateId(),
+        serviceId: service.id,
+        carTypeId: carType.id,
+        price: 0,
+        organizationId: activeOrg.id,
+      });
+    });
     setNewCarTypeName('');
     refresh();
   };
@@ -66,12 +86,20 @@ export default function Pricing({ activeOrg, userRole }: PricingProps) {
   const handleDeleteService = (id: string) => {
     if (!confirm('Удалить услугу и все связанные цены?')) return;
     deleteService(id);
+    if (editingService === id) {
+      setEditingService(null);
+      setEditServiceName('');
+    }
     refresh();
   };
 
   const handleDeleteCarType = (id: string) => {
     if (!confirm('Удалить тип авто и все связанные цены?')) return;
     deleteCarType(id);
+    if (editingCarType === id) {
+      setEditingCarType(null);
+      setEditCarTypeName('');
+    }
     refresh();
   };
 

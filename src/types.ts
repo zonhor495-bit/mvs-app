@@ -545,6 +545,8 @@ export interface AuthSession {
   activeOrgId?: string;
   createdAt: string;
   updatedAt: string;
+  // Optional token from remote auth provider
+  authToken?: string;
 }
 
 export interface WorkerNotification {

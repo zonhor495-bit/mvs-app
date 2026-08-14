@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { User, UserRole, Page, Organization, generateId } from '../types';
 import {
   restoreSession,
+  restoreRemoteSession,
   getOrganizations,
   setActiveOrgId,
   addOrganization,
@@ -75,14 +76,30 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
   }, [isElectron]);
 
   useEffect(() => {
-    const restored = restoreSession();
-    if (restored) {
-      setUser(restored.user);
-      const orgs = getOrganizations();
-      const org = restored.activeOrgId ? orgs.find(item => item.id === restored.activeOrgId) : orgs[0];
-      if (org) setActiveOrg(org);
-    }
-    setIsBootReady(true);
+    const initSession = async () => {
+      // Try remote session first (if token exists)
+      const remoteSession = await restoreRemoteSession();
+      if (remoteSession) {
+        setUser(remoteSession.user);
+        const orgs = getOrganizations();
+        const org = remoteSession.activeOrgId ? orgs.find(item => item.id === remoteSession.activeOrgId) : orgs[0];
+        if (org) setActiveOrg(org);
+        setIsBootReady(true);
+        return;
+      }
+      
+      // Fall back to local session
+      const restored = restoreSession();
+      if (restored) {
+        setUser(restored.user);
+        const orgs = getOrganizations();
+        const org = restored.activeOrgId ? orgs.find(item => item.id === restored.activeOrgId) : orgs[0];
+        if (org) setActiveOrg(org);
+      }
+      setIsBootReady(true);
+    };
+    
+    initSession();
   }, []);
 
   // Detect dark theme

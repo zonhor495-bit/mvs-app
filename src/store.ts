@@ -37,7 +37,7 @@ const KEYS = {
   // Новая система входа
   isInitialized: 'wd_is_initialized',
   authPasswords: 'wd_auth_passwords',
-  currentRole: 'wd_current_role',
+  remoteAuthUrl: 'wd_remote_auth_url',
 };
 
 type RolePasswords = {
@@ -158,6 +158,30 @@ export function getRolePasswords(): RolePasswords {
   }
 }
 
+export function getRemoteAuthUrl(): string | null {
+  try {
+    // Priority: localStorage override > environment variable > null
+    const localUrl = localStorage.getItem(KEYS.remoteAuthUrl);
+    if (localUrl) return localUrl;
+    // Check for VITE_AUTH_SERVER_URL from build environment
+    const envUrl = import.meta.env.VITE_AUTH_SERVER_URL;
+    return envUrl || null;
+  } catch {
+    return import.meta.env.VITE_AUTH_SERVER_URL || null;
+  }
+}
+
+export function setRemoteAuthUrl(url: string | null): void {
+  try {
+    if (!url) {
+      localStorage.removeItem(KEYS.remoteAuthUrl);
+    } else {
+      localStorage.setItem(KEYS.remoteAuthUrl, url);
+    }
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('wd-store-changed'));
+  } catch {}
+}
+
 export function setRolePassword(role: 'manager' | 'admin', password: string): boolean {
   initializeEmptyWorkspace();
   const nextPassword = password.trim();
@@ -223,6 +247,30 @@ export function registerLocalUser(payload: { username: string; passwordHash: str
   return { ok: true, user };
 }
 
+// Remote auth wrappers: delegate to server if configured
+import { registerRemote, loginRemote, deleteRemoteAccount } from './api/authApi';
+
+export async function registerRemoteUser(payload: { username: string; passwordHash: string; name?: string }): Promise<{ ok: boolean; user?: User; token?: string; error?: string }> {
+  const base = getRemoteAuthUrl();
+  if (!base) return { ok: false, error: 'Remote auth not configured' };
+  const res = await registerRemote(base, payload);
+  return res;
+}
+
+export async function loginRemoteUser(payload: { username: string; passwordHash: string }): Promise<{ ok: boolean; user?: User; token?: string; error?: string }> {
+  const base = getRemoteAuthUrl();
+  if (!base) return { ok: false, error: 'Remote auth not configured' };
+  const res = await loginRemote(base, payload);
+  return res;
+}
+
+export async function deleteRemoteUserAccount(token: string): Promise<{ ok: boolean; error?: string }> {
+  const base = getRemoteAuthUrl();
+  if (!base) return { ok: false, error: 'Remote auth not configured' };
+  const res = await deleteRemoteAccount(base, token);
+  return res;
+}
+
 export function authenticateLocalUser(payload: { username: string; passwordHash: string }): User | null {
   initializeEmptyWorkspace();
   const username = normalizeUsername(payload.username);
@@ -239,6 +287,38 @@ export function authenticateLocalUser(payload: { username: string; passwordHash:
   };
   saveUsersRaw(users.map(user => user.id === updated.id ? updated : user));
   return updated;
+}
+
+export function upsertUserFromRemote(remote: any): User {
+  initializeEmptyWorkspace();
+  const users = getUsersRaw();
+  // remote should contain id, username, name
+  const existing = users.find(u => u.remoteId && u.remoteId === remote.id) || users.find(u => normalizeUsername(u.username||'') === normalizeUsername(remote.username||''));
+  const now = new Date().toISOString();
+  if (existing) {
+    const updated: User = {
+      ...existing,
+      remoteId: remote.id,
+      name: remote.name || existing.name,
+      username: remote.username || existing.username,
+      updatedAt: now,
+    };
+    saveUsersRaw(users.map(u => u.id === existing.id ? updated : u));
+    return updated;
+  }
+  const user: User = {
+    id: generateId(),
+    remoteId: remote.id,
+    username: remote.username,
+    name: remote.name || remote.username,
+    role: 'admin',
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: now,
+  };
+  users.push(user);
+  saveUsersRaw(users);
+  return user;
 }
 
 export function updateUserProfile(userId: string, patch: Partial<User>): User | null {
@@ -259,14 +339,26 @@ export function updateUserProfile(userId: string, patch: Partial<User>): User | 
   return updated;
 }
 
-export function startSession(user: User, activeOrgId?: string): void {
+export function deleteLocalUser(userId: string): boolean {
+  const users = getUsersRaw();
+  const existing = users.find(u => u.id === userId);
+  if (!existing) return false;
+  saveUsersRaw(users.filter(u => u.id !== userId));
+  // If deleted user was in session, clear session
+  if (getCurrentUserId() === userId) clearSession();
+  return true;
+}
+
+export function startSession(user: User, activeOrgId?: string, authToken?: string): void {
   const now = new Date().toISOString();
-  saveSession({
+  const session = {
     userId: user.id || '',
     activeOrgId,
     createdAt: getSession()?.createdAt || now,
     updatedAt: now,
-  });
+  } as any;
+  if (authToken) session.authToken = authToken;
+  saveSession(session as AuthSession);
 }
 
 export function clearSession(): void {
@@ -289,6 +381,31 @@ export function restoreSession(): { user: User; activeOrgId?: string } | null {
     return null;
   }
   return { user, activeOrgId: session.activeOrgId };
+}
+
+export async function restoreRemoteSession(): Promise<{ user: User; activeOrgId?: string } | null> {
+  const session = getSession();
+  if (!session || !session.authToken) return null;
+  
+  const remoteUrl = getRemoteAuthUrl();
+  if (!remoteUrl) return null;
+  
+  try {
+    const { getRemoteUser } = await import('./api/authApi');
+    const res = await getRemoteUser(remoteUrl, session.authToken);
+    
+    if (!res.ok || !res.user) {
+      clearSession();
+      return null;
+    }
+    
+    // Update local user with remote data
+    const local = upsertUserFromRemote(res.user);
+    return { user: local, activeOrgId: session.activeOrgId };
+  } catch (e) {
+    console.error('Failed to restore remote session:', e);
+    return null;
+  }
 }
 
 export function getOrganizationsForUser(userId: string): Organization[] {
@@ -408,26 +525,8 @@ export function getFinancialSettings(orgId: string): OrganizationFinancialSettin
     calculationMode: org?.financialSettings?.calculationMode || 'percent',
     employeePercent,
     organizationPercent,
-    salaryAmount: org?.financialSettings?.salaryAmount ?? 0,
     fixedOrderAmount: org?.financialSettings?.fixedOrderAmount ?? 0,
   };
-}
-
-export function saveFinancialSettings(orgId: string, settings: OrganizationFinancialSettings): void {
-  const org = getOrganizationById(orgId);
-  if (!org) return;
-  const normalized: OrganizationFinancialSettings = {
-    calculationMode: settings.calculationMode,
-    employeePercent: clampPercent(settings.employeePercent),
-    organizationPercent: clampPercent(settings.organizationPercent || (100 - settings.employeePercent)),
-    salaryAmount: roundMoney(settings.salaryAmount || 0),
-    fixedOrderAmount: roundMoney(settings.fixedOrderAmount || 0),
-  };
-  updateOrganization({
-    ...org,
-    financialSettings: normalized,
-    washerPercent: normalized.employeePercent,
-  });
 }
 
 function getOrderWorkers(order: Order, workers: Washer[]): Washer[] {

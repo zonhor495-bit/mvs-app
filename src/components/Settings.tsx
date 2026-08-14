@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Organization, Box, Washer, FinanceCalculationMode, generateId } from '../types';
-import { getOrganizations, updateOrganization, deleteOrganization, addOrganization, setActiveOrgId, getBoxes, addBox, updateBox, deleteBox, getWashers, updateWasher, getWorkerTimelogs, getFinancialSettings, saveFinancialSettings, getRolePasswords, setRolePassword } from '../store';
+import { getOrganizations, updateOrganization, deleteOrganization, addOrganization, setActiveOrgId, getBoxes, addBox, updateBox, deleteBox, getWashers, updateWasher, getWorkerTimelogs, getFinancialSettings, getRolePasswords, setRolePassword, getRemoteAuthUrl, setRemoteAuthUrl, deleteRemoteUserAccount, getCurrentUser, clearSession, deleteLocalUser } from '../store';
 import LoyaltySettings from './LoyaltySettings';
 import BackupManager from './BackupManager';
 import ServiceManagement from './ServiceManagement';
@@ -104,12 +104,15 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
   };
 
   const handleSaveRolePasswords = () => {
-    const okManager = setRolePassword('manager', managerRolePassword);
-    const okAdmin = setRolePassword('admin', adminRolePassword);
-    if (!okManager || !okAdmin) {
+    const nextManager = managerRolePassword.trim();
+    const nextAdmin = adminRolePassword.trim();
+    if (!nextManager || !nextAdmin) {
       setPasswordSaveMessage('Пароли не могут быть пустыми');
       return;
     }
+
+    setRolePassword('manager', nextManager);
+    setRolePassword('admin', nextAdmin);
     setPasswordSaveMessage('Пароли ролей сохранены');
   };
 
@@ -391,6 +394,52 @@ export default function Settings({ activeOrg, userRole, onOrgChange }: SettingsP
 
           <div className="glass rounded-xl p-6">
             <h2 className="text-lg font-semibold text-red-400 mb-4">⚠️ Опасная зона</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Remote Auth URL</label>
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      defaultValue={getRemoteAuthUrl() || ''}
+                      onBlur={e => setRemoteAuthUrl(e.target.value.trim() || null)}
+                      className="w-full input-neon rounded-lg px-4 py-2 text-sm"
+                      placeholder="https://auth.example.com (опционально)"
+                    />
+                    <p className="text-xs text-slate-400 mt-2">Если указан, регистрация/вход будут выполняться через этот сервер. Деинсталляция не удалит серверные аккаунты. Для production адрес устанавливается автоматически.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-2">Аккаунт</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      const user = getCurrentUser();
+                      if (!user) return alert('Не найден текущий пользователь');
+                      if (!confirm('Вы уверены, что хотите удалить аккаунт? Это удалит аккаунт на сервере (если используется) и локальные данные пользователя.')) return;
+                      // If remote token exists in session, call remote delete
+                      const session = (localStorage.getItem('wd_session') ? JSON.parse(localStorage.getItem('wd_session') as string) : null) as any;
+                      if (session?.authToken) {
+                        const res = await deleteRemoteUserAccount(session.authToken);
+                        if (!res.ok) return alert('Ошибка при удалении аккаунта: ' + (res.error || 'unknown'));
+                      }
+                      // Delete local user record
+                      deleteLocalUser(user.id || '');
+                      clearSession();
+                      alert('Аккаунт удалён. Приложение будет перезапущено.');
+                      window.location.reload();
+                    }}
+                    className="btn-danger rounded-lg px-6 py-3 text-sm font-medium"
+                  >
+                    🗑 Удалить аккаунт
+                  </button>
+                </div>
+              </div>
+
+            </div>
+            <hr className="my-4" />
             <button
               onClick={() => {
                 if (confirm('Удалить ВСЕ данные? Это действие необратимо!')) {
@@ -486,12 +535,13 @@ function FinancePanel({ activeOrg, onSave }: { activeOrg: Organization; onSave: 
       salaryAmount: Math.max(0, Math.round(settings.salaryAmount)),
       fixedOrderAmount: Math.max(0, Math.round(settings.fixedOrderAmount)),
     };
-    saveFinancialSettings(activeOrg.id, normalized);
-    onSave({
+    const updatedOrg = {
       ...activeOrg,
       washerPercent: normalized.employeePercent,
       financialSettings: normalized,
-    });
+    };
+    updateOrganization(updatedOrg);
+    onSave(updatedOrg);
   };
 
   return (
