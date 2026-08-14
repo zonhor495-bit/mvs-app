@@ -146,7 +146,7 @@ function HomePage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Размер:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{fileSizes[currentRelease.version] || 84} МБ</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{versionFileSizes[currentRelease.version] || 84} МБ</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Дата выпуска:</span>
