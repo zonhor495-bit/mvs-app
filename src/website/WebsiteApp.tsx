@@ -56,7 +56,6 @@ function Header({ theme, toggleTheme }: { theme: 'light' | 'dark'; toggleTheme: 
           <NavLink to="/features" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">Возможности</NavLink>
           <NavLink to="/how-it-works" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">Как работает</NavLink>
           <NavLink to="/screenshots" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">Скриншоты</NavLink>
-          <NavLink to="/reviews" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">Отзывы</NavLink>
           <NavLink to="/faq" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">FAQ</NavLink>
           <Link to="/download" className="text-sm font-medium text-slate-600 transition hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400">Скачать</Link>
         </nav>
@@ -215,19 +214,19 @@ function HomePage() {
 function FeaturesPage() {
   return (
     <main>
-      <PageSection className="bg-slate-950 text-slate-100">
+      <PageSection className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-sky-400">Основные возможности</p>
-            <h2 className="text-4xl font-semibold">Всё, что нужно для управления автомойкой</h2>
-            <p className="mx-auto max-w-2xl text-base leading-8 text-slate-300">MVS объединяет CRM, финансы, склад и аналитику в единый рабочий инструмент, понятный для руководителя и оператора.</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">Основные возможности</p>
+            <h2 className="text-4xl font-semibold text-slate-900 dark:text-white">Всё, что нужно для управления автомойкой</h2>
+            <p className="mx-auto max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-400">MVS объединяет CRM, финансы, склад и аналитику в единый рабочий инструмент, понятный для руководителя и оператора.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {features.map((feature) => (
-              <div key={feature.title} className="group overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-8 transition hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-950">
+              <div key={feature.title} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:border-sky-500/40 dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-600 text-2xl text-white shadow-lg">{feature.icon}</div>
-                <h3 className="mt-6 text-xl font-semibold text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{feature.description}</p>
+                <h3 className="mt-6 text-xl font-semibold text-slate-900 dark:text-white">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -293,48 +292,20 @@ function ScreenshotsPage() {
   );
 }
 
-function ReviewsPage() {
-  const reviews = [
-    { name: 'Анна, владелец мойки', quote: 'MVS сделал работу команды более организованной, а отчёты — понятными. Теперь мы точно знаем, какие услуги приносят прибыль.' },
-    { name: 'Дмитрий, управляющий', quote: 'Скачал, установил и сразу начал использовать. Интерфейс прост, а функционал закрывает весь цикл управления.' },
-    { name: 'Елена, бухгалтер', quote: 'Финансовая аналитика в MVS позволяет быстро сверять выручку и расходы. Больше никаких таблиц в Excel.' },
-  ];
-  return (
-    <main>
-      <PageSection>
-        <div className="mx-auto max-w-6xl space-y-10">
-          <div className="space-y-3 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-sky-600">Отзывы</p>
-            <h2 className="text-4xl font-semibold text-slate-950 dark:text-white">Что говорят профессионалы</h2>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {reviews.map((review) => (
-              <div key={review.name} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 dark:border-slate-800 dark:bg-slate-900">
-                <p className="text-lg leading-8 text-slate-700 dark:text-slate-300">“{review.quote}”</p>
-                <p className="mt-6 font-semibold text-slate-900 dark:text-white">{review.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </PageSection>
-    </main>
-  );
-}
-
 function FAQPage() {
   return (
     <main>
-      <PageSection className="bg-slate-950 text-slate-100">
+      <PageSection className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-sky-400">FAQ</p>
-            <h2 className="text-4xl font-semibold">Ответы на популярные вопросы</h2>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">FAQ</p>
+            <h2 className="text-4xl font-semibold text-slate-900 dark:text-white">Ответы на популярные вопросы</h2>
           </div>
           <div className="space-y-4">
             {faqs.map((faq) => (
-              <details key={faq.question} className="rounded-3xl border border-slate-800 bg-slate-900 p-6" open={false}>
-                <summary className="cursor-pointer text-lg font-semibold text-white">{faq.question}</summary>
-                <p className="mt-4 text-slate-300">{faq.answer}</p>
+              <details key={faq.question} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900" open={false}>
+                <summary className="cursor-pointer text-lg font-semibold text-slate-900 dark:text-white">{faq.question}</summary>
+                <p className="mt-4 text-slate-600 dark:text-slate-300">{faq.answer}</p>
               </details>
             ))}
           </div>
@@ -446,10 +417,10 @@ function DownloadPage() {
                 💡 Автообновление поддерживается. Если MVS уже установлен, новые версии будут предлагаться автоматически.
               </p>
             </div>
-            <div className="rounded-[1.75rem] bg-slate-950 p-8 text-slate-100 shadow-xl dark:bg-slate-900">
-              <div className="rounded-3xl bg-slate-900 p-6 shadow-inner">
-                <p className="text-sm uppercase tracking-[0.3em] text-sky-400">Пакет включает</p>
-                <ul className="mt-6 space-y-4 text-sm leading-7 text-slate-300">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 text-slate-900 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
+              <div className="rounded-3xl bg-slate-50 p-6 dark:bg-slate-800">
+                <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">Пакет включает</p>
+                <ul className="mt-6 space-y-4 text-sm leading-7 text-slate-700 dark:text-slate-300">
                   <li>✔ Установщик NSIS</li>
                   <li>✔ Ярлык на рабочем столе</li>
                   <li>✔ Ярлык в меню Пуск</li>
@@ -590,7 +561,6 @@ export default function WebsiteApp() {
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/screenshots" element={<ScreenshotsPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/support" element={<SupportPage />} />
           <Route path="/download" element={<DownloadPage />} />
