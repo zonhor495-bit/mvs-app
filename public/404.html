@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MVS — Car Management System</title>
     <script>
-      // For GitHub Pages with custom domain (mvs.app)
-      // Store the redirect path before redirecting to index.html
+      // For GitHub Pages with either custom domain or username.github.io/<repo>
+      // Store the redirect path before redirecting to the site's root index
       var redirect = window.location.pathname + window.location.search + window.location.hash;
       sessionStorage.redirect = redirect;
-      // Redirect to index.html
-      window.location.href = "/";
+      // Compute repository-root-aware index path:
+      // - If served under a repo path (e.g. /mvs-app/...), use that first segment
+      // - Otherwise (custom domain root) fall back to '/'
+      (function() {
+        var parts = window.location.pathname.split('/');
+        var root = parts[1] ? '/' + parts[1] + '/' : '/';
+        window.location.href = root;
+      })();
     </script>
   </head>
   <body>
