@@ -116,8 +116,8 @@ function PageSection({ children, className = '' }: { children: React.ReactNode; 
 function HomePage() {
   return (
     <main>
-      <PageSection className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        <div className="mx-auto max-w-7xl grid gap-12 lg:grid-cols-[0.95fr_0.9fr] lg:items-center">
+      <PageSection className="bg-white text-slate-900">
+        <div className="mx-auto max-w-8xl grid gap-12 lg:grid-cols-[1fr_0.95fr] lg:items-center">
           <div className="space-y-8">
             <div className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700 dark:bg-slate-800 dark:text-sky-300">MVS — Car Management System</div>
             <div className="space-y-6">
@@ -214,7 +214,7 @@ function HomePage() {
 function FeaturesPage() {
   return (
     <main>
-      <PageSection className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <PageSection className="bg-white text-slate-900">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
             <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">Основные возможности</p>
@@ -271,7 +271,7 @@ function ScreenshotsPage() {
   const cards = ['Dashboard', 'Клиенты', 'Заказы', 'Аналитика', 'Финансы', 'Настройки'];
   return (
     <main>
-      <PageSection className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <PageSection className="bg-white text-slate-900">
         <div className="mx-auto max-w-7xl space-y-10">
           <div className="space-y-3 text-center">
             <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">Скриншоты</p>
@@ -295,7 +295,7 @@ function ScreenshotsPage() {
 function FAQPage() {
   return (
     <main>
-      <PageSection className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <PageSection className="bg-white text-slate-900">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
             <p className="text-sm uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">FAQ</p>
@@ -318,7 +318,7 @@ function FAQPage() {
 function SupportPage() {
   return (
     <main>
-      <PageSection>
+      <PageSection className="bg-white text-slate-900">
         <div className="mx-auto max-w-6xl grid gap-12 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
             <p className="text-sm uppercase tracking-[0.3em] text-sky-600">Поддержка</p>
@@ -327,8 +327,8 @@ function SupportPage() {
           </div>
           <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Email</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">support@mvs.app</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Контакты</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">Связь через раздел поддержки</p>
             </div>
             <div>
               <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Телефон</p>
@@ -348,7 +348,7 @@ function SupportPage() {
 function DownloadPage() {
   return (
     <main>
-      <PageSection className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <PageSection className="bg-white text-slate-900">
         <div className="mx-auto max-w-5xl rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl dark:border-slate-800 dark:bg-slate-900">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>

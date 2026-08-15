@@ -116,8 +116,11 @@ export function getCurrentVersionInfo(appVersion: string, releaseDate: string) {
   return {
     version: appVersion,
     date: releaseDate,
+    // Keep downloadUrl pointing to release asset (internal mechanism may rely on GitHub releases),
+    // but do not expose explicit GitHub labels in UI. The changelog link is internal.
     downloadUrl: `https://github.com/zonhor495-bit/mvs-app/releases/download/v${appVersion}/MVSSetup-${appVersion}.exe`,
-    fullChangesUrl: `https://github.com/zonhor495-bit/mvs-app/releases/tag/v${appVersion}`,
+    // Use internal changelog route so UI does not show external GitHub URLs
+    fullChangesUrl: `/changelog?version=${appVersion}`,
     whatsNew: currentVersion.features,
     title: currentVersion.title,
   };
