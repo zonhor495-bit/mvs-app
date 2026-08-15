@@ -8,7 +8,7 @@
   "main": "build/electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "build:web": "vite build",
+    "build:web": "vite build && node ./scripts/copy-spa-routes.cjs",
     "build:electron": "tsc -p tsconfig.electron.json && node ./scripts/postbuild-electron.cjs",
     "build": "npm run build:web && npm run build:electron",
     "preview": "vite preview",
