@@ -390,14 +390,6 @@ function DownloadPage() {
                   >
                     📖 Что нового в {currentRelease.version}
                   </Link>
-                  <a
-                    href={currentRelease.fullChangesUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/80 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:bg-slate-800"
-                  >
-                    → GitHub Releases
-                  </a>
                 </div>
               </div>
 
@@ -462,14 +454,6 @@ function ReleaseNotesPage() {
                       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Дата выпуска: {release.date}</p>
                       <p className="mt-1 text-base font-medium text-slate-900 dark:text-white">{release.title}</p>
                     </div>
-                    <a
-                      href={`https://github.com/zonhor495-bit/mvs-app/releases/tag/v${release.version}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-                    >
-                      На GitHub →
-                    </a>
                   </div>
 
                   {release.features.length > 0 && (
