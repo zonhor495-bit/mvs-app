@@ -28,6 +28,19 @@ export interface ReleaseEntry {
  */
 export const versionHistory: ReleaseEntry[] = [
   {
+    version: '1.2.0',
+    date: '8 сентября 2026',
+    title: 'MVS 1.2.0 — Стабильный релиз',
+    features: [
+      'Подготовка стабильного релиза 1.2.0',
+      'Мелкие правки документации и инсталлятора',
+    ],
+    fixes: [
+      'Мелкие исправления стабильности',
+    ],
+    isCurrentVersion: true,
+  },
+  {
     version: '1.1.8',
     date: '14 августа 2026',
     title: 'Обновление версии и подготовка системы',
@@ -99,6 +112,7 @@ export const versionHistory: ReleaseEntry[] = [
  * Update this when releasing a new version with different build size
  */
 export const fileSizes: Record<string, number> = {
+  '1.2.0': 84,
   '1.1.8': 84,
   '1.1.0': 84,
   '1.0.3': 82,
