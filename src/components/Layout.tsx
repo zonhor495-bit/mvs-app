@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { User, UserRole, Page, Organization } from '../types';
-import { getOrganizations, verifyPassword } from '../store';
+import { getOrganizations, verifyRolePassword } from '../store';
 
 interface LayoutProps {
   user: User;
@@ -54,9 +54,9 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
     setRoleError('');
   };
 
-  const confirmRoleSwitch = () => {
+  const confirmRoleSwitch = async () => {
     if (!pendingRole) return;
-    if (!verifyPassword(pendingRole, rolePassword)) {
+    if (!(await verifyRolePassword(pendingRole, rolePassword))) {
       setRoleError('Неверный пароль');
       return;
     }
@@ -241,12 +241,12 @@ export default function Layout({ user, activeOrg, currentPage, onPageChange, onL
               onChange={e => { setRolePassword(e.target.value); setRoleError(''); }}
               className="mt-4 w-full input-neon rounded-lg px-4 py-3 text-sm"
               placeholder="Пароль"
-              onKeyDown={e => e.key === 'Enter' && confirmRoleSwitch()}
+              onKeyDown={e => { if (e.key === 'Enter') { void confirmRoleSwitch(); } }}
             />
             {roleError && <p className="text-sm text-red-400 mt-3">{roleError}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => { setRolePromptOpen(false); setPendingRole(null); }} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white">Отмена</button>
-              <button onClick={confirmRoleSwitch} className="btn-neon rounded-lg px-5 py-2 text-sm">Подтвердить</button>
+              <button onClick={() => { void confirmRoleSwitch(); }} className="btn-neon rounded-lg px-5 py-2 text-sm">Подтвердить</button>
             </div>
           </div>
         </div>

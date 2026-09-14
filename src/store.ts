@@ -33,6 +33,7 @@ const KEYS = {
   users: 'wd_users',
   rolePasswords: 'wd_role_passwords',
   session: 'wd_session',
+  currentRole: 'wd_current_role',
   seeded: 'wd_seeded',
   // Новая система входа
   isInitialized: 'wd_is_initialized',
@@ -46,8 +47,8 @@ type RolePasswords = {
 };
 
 const DEFAULT_ROLE_PASSWORDS: RolePasswords = {
-  manager: '235792',
-  admin: '0000',
+  manager: '',
+  admin: '',
 };
 
 function getTodayKey(date = new Date()): string {
@@ -151,6 +152,8 @@ export function getRolePasswords(): RolePasswords {
       manager: String(parsed.manager || DEFAULT_ROLE_PASSWORDS.manager),
       admin: String(parsed.admin || DEFAULT_ROLE_PASSWORDS.admin),
     };
+    if (next.manager === '235792') next.manager = '';
+    if (next.admin === '0000') next.admin = '';
     return next;
   } catch {
     localStorage.setItem(KEYS.rolePasswords, JSON.stringify(DEFAULT_ROLE_PASSWORDS));
@@ -525,6 +528,7 @@ export function getFinancialSettings(orgId: string): OrganizationFinancialSettin
     calculationMode: org?.financialSettings?.calculationMode || 'percent',
     employeePercent,
     organizationPercent,
+    salaryAmount: org?.financialSettings?.salaryAmount ?? 0,
     fixedOrderAmount: org?.financialSettings?.fixedOrderAmount ?? 0,
   };
 }
@@ -3434,44 +3438,42 @@ export function logout(): void {
  * Управление услугами автомойки
  */
 export function addServiceToOrganization(organizationId: string, service: Service): void {
-  const data = getWorkspaceRaw();
-  data.services = data.services || [];
-  const existingIndex = data.services.findIndex(s => s.id === service.id && s.organizationId === organizationId);
+  const data = get<Service>(KEYS.services);
+  const existingIndex = data.findIndex(s => s.id === service.id && s.organizationId === organizationId);
   const serviceToSave = { ...service, organizationId };
   if (existingIndex >= 0) {
-    data.services[existingIndex] = serviceToSave;
+    data[existingIndex] = serviceToSave;
   } else {
-    data.services.push(serviceToSave);
+    data.push(serviceToSave);
   }
-  saveWorkspace(data);
+  saveServices(data);
 }
 
 export function removeServiceFromOrganization(organizationId: string, serviceId: string): void {
-  const data = getWorkspaceRaw();
-  data.services = (data.services || []).filter(s => !(s.id === serviceId && s.organizationId === organizationId));
-  saveWorkspace(data);
+  const data = get<Service>(KEYS.services).filter(s => !(s.id === serviceId && s.organizationId === organizationId));
+  saveServices(data);
 }
 
 export function updateServicePrice(organizationId: string, serviceId: string, price: number): void {
-  const data = getWorkspaceRaw();
-  const service = (data.services || []).find(s => s.id === serviceId && s.organizationId === organizationId);
+  const data = get<Service>(KEYS.services);
+  const service = data.find(s => s.id === serviceId && s.organizationId === organizationId);
   if (service) {
-    (service as any).price = price;
-    saveWorkspace(data);
+    service.price = price;
+    saveServices(data);
   }
 }
 
 export function incrementServicePopularity(organizationId: string, serviceId: string): void {
-  const data = getWorkspaceRaw();
-  const service = (data.services || []).find(s => s.id === serviceId && s.organizationId === organizationId);
+  const data = get<Service>(KEYS.services);
+  const service = data.find(s => s.id === serviceId && s.organizationId === organizationId);
   if (service) {
     service.popularity = (service.popularity || 0) + 1;
-    saveWorkspace(data);
+    saveServices(data);
   }
 }
 
 export function getTopServicesForOrganization(organizationId: string, limit: number = 10): Service[] {
-  const services = getServicesForOrganization(organizationId);
+  const services = getServices(organizationId);
   return services
     .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
     .slice(0, limit);

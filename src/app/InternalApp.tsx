@@ -8,9 +8,11 @@ import {
   addOrganization,
   clearSession,
   updateUserProfile,
+  getRolePasswords,
 } from '../store';
 import { addServiceToOrganization } from '../store';
 import FirstRunWizard from '../components/FirstRunWizard';
+import { PasswordSetupModal } from '../components/PasswordSetupModal';
 import Login from '../components/Login';
 import Layout from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -40,11 +42,37 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
   const isDev = import.meta.env.DEV;
   const isElectron = typeof window !== 'undefined' && typeof window.electron !== 'undefined';
 
+  // Helper to check if passwords are set
+  const arePasswordsSet = () => {
+    const passwords = getRolePasswords();
+    return !!passwords.admin && !!passwords.manager;
+  };
+
+  // Handler for saving both role passwords
+  const handleSavePasswords = async (adminPassword: string, managerPassword: string): Promise<boolean> => {
+    try {
+      // Dynamically import to avoid Rollup issues
+      const { setRolePassword } = await import('../store');
+      
+      // Save admin password
+      const adminSuccess = await setRolePassword('admin', adminPassword);
+      if (!adminSuccess) return false;
+      
+      // Save manager password
+      const managerSuccess = await setRolePassword('manager', managerPassword);
+      return managerSuccess;
+    } catch (e) {
+      console.error('Error saving passwords:', e);
+      return false;
+    }
+  };
+
   const [user, setUser] = useState<User | null>(null);
   const [activeOrg, setActiveOrg] = useState<Organization | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isBootReady, setIsBootReady] = useState(false);
   const [_profileRerender, setProfileRerender] = useState(0);
+  const [passwordsSet, setPasswordsSet] = useState(true);
   
   // Update dialog state
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -84,6 +112,7 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
         const orgs = getOrganizations();
         const org = remoteSession.activeOrgId ? orgs.find(item => item.id === remoteSession.activeOrgId) : orgs[0];
         if (org) setActiveOrg(org);
+        setPasswordsSet(arePasswordsSet());
         setIsBootReady(true);
         return;
       }
@@ -96,6 +125,7 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
         const org = restored.activeOrgId ? orgs.find(item => item.id === restored.activeOrgId) : orgs[0];
         if (org) setActiveOrg(org);
       }
+      setPasswordsSet(arePasswordsSet());
       setIsBootReady(true);
     };
     
@@ -373,6 +403,8 @@ export default function App({ onLogout: externalOnLogout }: { onLogout?: () => v
 
   const content = !user
     ? <Login onLogin={handleLogin} />
+    : !passwordsSet
+    ? <PasswordSetupModal onLogout={handleLogout} onComplete={() => setPasswordsSet(true)} onSavePasswords={handleSavePasswords} />
     : !activeOrg
     ? <FirstRunWizard user={user} onLogout={handleLogout} onComplete={handleSetupComplete} />
     : (
